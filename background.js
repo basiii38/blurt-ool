@@ -34,25 +34,10 @@ function toggleToolbar() {
           </svg>
         </div>
         <button id="toolbar-mode-toggle" title="Switch to Highlight Mode">🌫️</button>
+        <div class="toolbar-separator"></div>
         <button id="toolbar-select-element" title="Select Element (Ctrl+Shift+E)">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M1.5 0.5L1 0.5C0.72 0.5 0.5 0.72 0.5 1L0.5 1.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
-            <path d="M14.5 0.5L15 0.5C15.28 0.5 15.5 0.72 15.5 1L15.5 1.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
-            <path d="M1.5 15.5L1 15.5C0.72 15.5 0.5 15.28 0.5 15L0.5 14.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
-            <path d="M14.5 15.5L15 15.5C15.28 15.5 15.5 15.28 15.5 15L15.5 14.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
-            <path d="M3.5 0.5L5.5 0.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
-            <path d="M7.5 0.5L9.5 0.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
-            <path d="M11.5 0.5L13.5 0.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
-            <path d="M3.5 15.5L5.5 15.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
-            <path d="M7.5 15.5L9.5 15.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
-            <path d="M11.5 15.5L13.5 15.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
-            <path d="M0.5 3.5L0.5 5.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
-            <path d="M0.5 7.5L0.5 9.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
-            <path d="M0.5 11.5L0.5 13.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
-            <path d="M15.5 3.5L15.5 5.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
-            <path d="M15.5 7.5L15.5 9.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
-            <path d="M15.5 11.5L15.5 13.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
-            <path d="M11.4 12.8C11.35 13 11.26 13 11.19 12.85L8.9 8.45C8.83 8.3 8.93 8.21 9.08 8.27L13.48 10.55C13.63 10.62 13.61 10.71 13.41 10.77L11.85 11.18Z" stroke="currentColor" stroke-width="1" stroke-linecap="round" fill="none"/>
+            <path d="M11.4 12.8L8.9 8.45L13.48 10.55L11.85 11.18Z" stroke="currentColor" stroke-width="1" fill="none"/>
           </svg>
         </button>
         <button id="toolbar-draw-region" title="Draw Region">
@@ -66,7 +51,7 @@ function toggleToolbar() {
             <path d="M10 2.6C9.9 2.6 9.9 2.6 9.8 2.7L4.7 2.7L4 2.7C3.7 2.7 3.3 3 3.3 3.3L3.3 5.3C3.3 5.7 3.7 6 4 6L4.7 6C5 6 5.3 5.7 5.3 5.3L5.3 4.7L8.7 4.7L8.7 15.3L8 15.3C7.7 15.3 7.3 15.7 7.3 16L7.3 16.7C7.3 17 7.7 17.3 8 17.3L9.8 17.3C9.9 17.4 10.1 17.4 10.2 17.3L12 17.3C12.4 17.3 12.7 17 12.7 16.7L12.7 16C12.7 15.7 12.4 15.3 12 15.3L11.3 15.3L11.3 4.7L14.7 4.7L14.7 5.3C14.7 5.7 15 6 15.3 6L16 6C16.4 6 16.7 5.7 16.7 5.3L16.7 3.3C16.7 3 16.4 2.7 16 2.7L15.3 2.7L10.2 2.7C10.1 2.6 10.1 2.6 10 2.6Z" fill="currentColor"/>
           </svg>
         </button>
-        <button id="toolbar-quick-select" title="Quick Select Elements">
+        <button id="toolbar-quick-select" title="Quick Select">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <rect x="2" y="2" width="4" height="4" rx="1" fill="currentColor" opacity="0.7"/>
             <rect x="10" y="2" width="4" height="4" rx="1" fill="currentColor" opacity="0.7"/>
@@ -74,6 +59,7 @@ function toggleToolbar() {
             <rect x="10" y="10" width="4" height="4" rx="1" fill="currentColor" opacity="0.7"/>
           </svg>
         </button>
+        <div class="toolbar-separator"></div>
         <button id="toolbar-presets" title="Blur Presets">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <circle cx="8" cy="3" r="1.5" fill="currentColor"/>
@@ -89,33 +75,35 @@ function toggleToolbar() {
             <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5" fill="none"/>
             <circle cx="7" cy="7" r="2" fill="currentColor"/>
           </svg>
-          <input type="range" id="toolbar-blur-intensity" min="0" max="20" value="5" title="Blur Intensity">
+          <input type="range" id="toolbar-blur-intensity" min="0" max="100" value="8" title="Blur Intensity (0-100px)">
         </div>
-        <button id="toolbar-save" title="Save Configuration">
+        <div class="toolbar-separator"></div>
+        <button id="toolbar-save" title="Save (Ctrl+S)">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M3 2C2.45 2 2 2.45 2 3V13C2 13.55 2.45 14 3 14H13C13.55 14 14 13.55 14 13V5L11 2H3Z" stroke="currentColor" stroke-width="1.5" fill="none"/>
             <rect x="5" y="1" width="5" height="4" rx="0.5" fill="currentColor"/>
             <rect x="4" y="9" width="8" height="5" rx="0.5" stroke="currentColor" stroke-width="1" fill="none"/>
           </svg>
         </button>
-        <button id="toolbar-load" title="Load Configuration">
+        <button id="toolbar-load" title="Load (Ctrl+O)">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M3 2C2.45 2 2 2.45 2 3V13C2 13.55 2.45 14 3 14H13C13.55 14 14 13.55 14 13V5L11 2H3Z" stroke="currentColor" stroke-width="1.5" fill="none"/>
             <path d="M8 5V11M8 11L6 9M8 11L10 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
-        <button id="toolbar-export" title="Export Configuration">
+        <button id="toolbar-export" title="Export (Ctrl+E)">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M8 2V8M8 2L6 4M8 2L10 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M3 9V12C3 12.55 3.45 13 4 13H12C12.55 13 13 12.55 13 12V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
         </button>
-        <button id="toolbar-import" title="Import Configuration">
+        <button id="toolbar-import" title="Import">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M8 8V2M8 8L6 6M8 8L10 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M3 9V12C3 12.55 3.45 13 4 13H12C12.55 13 13 12.55 13 12V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
         </button>
+        <div class="toolbar-separator"></div>
         <button id="toolbar-screenshot" title="Screenshot">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <rect x="2" y="4" width="12" height="9" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/>
@@ -140,18 +128,23 @@ function toggleToolbar() {
             <rect x="1" y="3" width="14" height="1.5" rx="0.5" fill="currentColor"/>
           </svg>
         </button>
-        <button id="toolbar-help" title="Keyboard Shortcuts (?)">
+        <div class="toolbar-separator"></div>
+        <button id="toolbar-help" title="Help (?)">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5" fill="none"/>
             <path d="M8 11.5V11.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             <path d="M8 4.5C6.62 4.5 5.5 5.62 5.5 7H7C7 6.45 7.45 6 8 6C8.55 6 9 6.45 9 7C9 7.5 8.5 7.75 8 8.5V9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
         </button>
-        <button id="toolbar-close" title="Close (Ctrl+Shift+H to toggle)">
+        <button id="toolbar-close" title="Close">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
         </button>
+      </div>
+      <div id="toolbar-status-bar" style="padding: 8px 12px; border-top: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: space-between; font-size: 12px;">
+        <span id="toolbar-status" style="color: #6b7280; font-weight: 500;">Ready</span>
+        <span style="color: #9ca3af; font-size: 11px;">Press ? for help</span>
       </div>
     `;
     document.body.appendChild(toolbarContainer);
@@ -211,8 +204,8 @@ function toggleToolbar() {
         padding: 8px;
         border: none;
         border-radius: 8px;
-        background: rgba(0, 0, 0, 0.02);
-        color: #374151;
+        background: rgba(0, 0, 0, 0.05);
+        color: #1f2937;
         min-width: 32px;
         height: 32px;
         display: flex;
@@ -222,34 +215,95 @@ function toggleToolbar() {
         pointer-events: auto !important;
         filter: none !important;
         z-index: 2147483647 !important;
+        border: 1px solid rgba(0, 0, 0, 0.08);
       }
-      
+
+      #blur-toolbar button svg {
+        filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.5));
+      }
+
       #blur-toolbar button:hover {
-        background: rgba(0, 0, 0, 0.08);
+        background: rgba(102, 126, 234, 0.15);
+        border-color: rgba(102, 126, 234, 0.3);
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
       }
-      
+
       #blur-toolbar button:active {
         transform: translateY(0);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
-      
+
       #toolbar-mode-toggle {
         font-size: 18px;
         line-height: 1;
         padding: 6px 8px;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(139, 92, 246, 0.1));
+        border: 1px solid rgba(102, 126, 234, 0.2);
       }
-      
+
+      #toolbar-mode-toggle:hover {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(139, 92, 246, 0.2));
+      }
+
+      /* Enhanced visibility for Quick Select and Presets */
+      #toolbar-quick-select,
+      #toolbar-presets {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.08));
+        border: 1px solid rgba(59, 130, 246, 0.2);
+      }
+
+      #toolbar-quick-select:hover,
+      #toolbar-presets:hover {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.15));
+        border-color: rgba(59, 130, 246, 0.4);
+      }
+
+      #toolbar-quick-select svg,
+      #toolbar-presets svg {
+        filter: drop-shadow(0 1px 2px rgba(59, 130, 246, 0.3));
+      }
+
+      /* Visual separators between button groups */
+      .toolbar-separator {
+        width: 1px;
+        height: 24px;
+        background: linear-gradient(to bottom,
+          transparent,
+          rgba(0, 0, 0, 0.15) 20%,
+          rgba(0, 0, 0, 0.15) 80%,
+          transparent);
+        margin: 0 4px;
+        flex-shrink: 0;
+      }
+
+      /* Enhanced toolbar container */
+      #blur-toolbar {
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15),
+                    0 2px 8px rgba(0, 0, 0, 0.1),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      }
+
+      /* Status bar enhancement */
+      #toolbar-status-bar {
+        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.04));
+      }
+
       .color-picker-container {
         display: flex;
         align-items: center;
-        background: rgba(0, 0, 0, 0.02);
+        background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(245, 158, 11, 0.1));
+        border: 1px solid rgba(251, 191, 36, 0.2);
         border-radius: 8px;
         padding: 4px;
         pointer-events: auto !important;
         filter: none !important;
         z-index: 2147483647 !important;
+      }
+
+      .color-picker-container:hover {
+        background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.15));
+        border-color: rgba(251, 191, 36, 0.3);
       }
       
       #toolbar-color-picker {
@@ -280,20 +334,27 @@ function toggleToolbar() {
         display: flex;
         align-items: center;
         gap: 6px;
-        background: rgba(0, 0, 0, 0.02);
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(124, 58, 237, 0.08));
+        border: 1px solid rgba(139, 92, 246, 0.15);
         border-radius: 8px;
         padding: 6px 10px;
         pointer-events: auto !important;
         filter: none !important;
         z-index: 2147483647 !important;
       }
-      
+
+      .slider-container:hover {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(124, 58, 237, 0.12));
+        border-color: rgba(139, 92, 246, 0.25);
+      }
+
       .slider-container svg {
-        color: #6b7280;
+        color: #7c3aed;
+        filter: drop-shadow(0 1px 2px rgba(139, 92, 246, 0.2));
       }
       
       #blur-toolbar input[type="range"] {
-        width: 60px;
+        width: 80px;
         height: 4px;
         appearance: none;
         background: rgba(0, 0, 0, 0.1);
@@ -306,25 +367,28 @@ function toggleToolbar() {
         width: 16px;
         height: 16px;
         border-radius: 50%;
-        background: #374151;
+        background: linear-gradient(135deg, #7c3aed, #6d28d9);
         cursor: pointer;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4),
+                    0 0 0 2px rgba(255, 255, 255, 0.8);
         transition: all 0.2s ease;
       }
-      
+
       #blur-toolbar input[type="range"]::-webkit-slider-thumb:hover {
-        background: #1f2937;
-        transform: scale(1.1);
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        transform: scale(1.15);
+        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.5),
+                    0 0 0 3px rgba(255, 255, 255, 0.9);
       }
-      
+
       #blur-toolbar input[type="range"]::-moz-range-thumb {
         width: 16px;
         height: 16px;
         border-radius: 50%;
-        background: #374151;
+        background: linear-gradient(135deg, #7c3aed, #6d28d9);
         cursor: pointer;
-        border: none;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        border: 2px solid rgba(255, 255, 255, 0.8);
+        box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
       }
     `;
     document.head.appendChild(style);
