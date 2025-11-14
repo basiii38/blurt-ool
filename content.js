@@ -13,6 +13,8 @@ let blurHistory = [];
 let redoHistory = [];
 let originalUserSelect = '';
 let toolbarVisible = true;
+let activeToolMode = null; // Track which tool is currently active
+let toolbarCompact = false; // Track toolbar compact mode
 
 // Constants for z-index
 const Z_INDEX_MAX = 2147483647;
@@ -74,6 +76,7 @@ function removeOverlay() {
   isSelecting = false;
   isDrawing = false;
   isSelectingText = false;
+  setActiveTool(null); // Clear active tool state
 }
 
 function exitSelectMode() {
@@ -83,6 +86,7 @@ function exitSelectMode() {
     lastHighlightedElement = null;
   }
   isSelecting = false;
+  setActiveTool(null); // Clear active tool state
 }
 
 function highlightElement(element) {
@@ -317,21 +321,32 @@ function applySavedState(state) {
 async function exportConfiguration() {
   const state = serializeBlurState();
   const domain = getCurrentDomain();
+  const now = new Date();
+
+  // Format date as YYYY-MM-DD
+  const dateStr = now.toISOString().split('T')[0];
+
+  // Format time as HH-MM for filename safety
+  const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-').substring(0, 5);
+
   const data = {
     domain,
-    timestamp: new Date().toISOString(),
+    timestamp: now.toISOString(),
+    exportDate: dateStr,
     state
   };
 
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
+
+  // Smart filename: blur-google.com-2024-11-14.json
+  a.download = `blur-${domain}-${dateStr}.json`;
   a.href = url;
-  a.download = `blur-config-${domain}-${Date.now()}.json`;
   a.click();
   URL.revokeObjectURL(url);
 
-  showNotification('Configuration exported');
+  showNotification(`Configuration exported: ${domain}`);
 }
 
 async function importConfiguration() {
@@ -387,6 +402,189 @@ function showNotification(message, isError = false) {
     notification.style.transition = 'opacity 0.3s';
     setTimeout(() => notification.remove(), 300);
   }, 3000);
+}
+
+// Keyboard shortcuts help modal
+function showKeyboardShortcuts() {
+  // Check if modal already exists
+  if (document.getElementById('blur-shortcuts-modal')) {
+    document.getElementById('blur-shortcuts-modal').remove();
+    return;
+  }
+
+  const modal = document.createElement('div');
+  modal.id = 'blur-shortcuts-modal';
+  modal.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 12px;
+    padding: 0;
+    z-index: ${Z_INDEX_MAX};
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  `;
+
+  const shortcuts = [
+    { category: 'Selection Tools', items: [
+      { key: 'Ctrl+Shift+E', desc: 'Activate element selection tool' },
+      { key: 'Click', desc: 'Select/blur element (when selection tool active)' },
+      { key: 'Esc', desc: 'Cancel current selection mode' }
+    ]},
+    { category: 'Modes & Effects', items: [
+      { key: 'Ctrl+Shift+B', desc: 'Toggle Blur/Highlight mode' },
+      { key: '1, 2, 3', desc: 'Quick blur presets (Light, Medium, Heavy)' }
+    ]},
+    { category: 'History', items: [
+      { key: 'Ctrl+Z', desc: 'Undo last action' },
+      { key: 'Ctrl+Shift+Z', desc: 'Redo last undone action' },
+      { key: 'Ctrl+Y', desc: 'Redo (alternative)' }
+    ]},
+    { category: 'File Operations', items: [
+      { key: 'Ctrl+S', desc: 'Save current configuration' },
+      { key: 'Ctrl+O', desc: 'Load saved configuration' },
+      { key: 'Ctrl+E', desc: 'Export configuration to file' }
+    ]},
+    { category: 'View', items: [
+      { key: 'Ctrl+Shift+H', desc: 'Toggle toolbar visibility' },
+      { key: 'Ctrl+Shift+C', desc: 'Toggle compact toolbar mode' },
+      { key: '?', desc: 'Show/hide this help (Shift+/)' }
+    ]},
+    { category: 'Quick Actions', items: [
+      { key: 'Delete', desc: 'Clear all blur/highlight effects' },
+      { key: 'Ctrl+A', desc: 'Select all images' },
+      { key: 'Ctrl+Shift+A', desc: 'Select all videos' }
+    ]}
+  ];
+
+  let content = `
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; border-radius: 12px 12px 0 0;">
+      <h2 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 600;">Keyboard Shortcuts</h2>
+      <p style="margin: 0; opacity: 0.9; font-size: 14px;">Master Element Blur with these shortcuts</p>
+    </div>
+    <div style="padding: 24px;">
+  `;
+
+  shortcuts.forEach(section => {
+    content += `
+      <div style="margin-bottom: 24px;">
+        <h3 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: #374151;">${section.category}</h3>
+        <div style="display: grid; gap: 8px;">
+    `;
+
+    section.items.forEach(item => {
+      content += `
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #f3f4f6; border-radius: 6px;">
+          <span style="color: #6b7280; font-size: 14px;">${item.desc}</span>
+          <kbd style="background: white; padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #374151; border: 1px solid #d1d5db; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">${item.key}</kbd>
+        </div>
+      `;
+    });
+
+    content += `
+        </div>
+      </div>
+    `;
+  });
+
+  content += `
+      <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e7eb; text-align: center;">
+        <button id="close-shortcuts-modal" style="background: #667eea; color: white; border: none; padding: 10px 24px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s;">
+          Got it! (Press Esc or ?)
+        </button>
+      </div>
+    </div>
+  `;
+
+  modal.innerHTML = content;
+
+  // Add overlay
+  const overlay = document.createElement('div');
+  overlay.id = 'blur-shortcuts-overlay';
+  overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: ${Z_INDEX_MAX - 1};
+    backdrop-filter: blur(4px);
+  `;
+
+  overlay.addEventListener('click', () => {
+    modal.remove();
+    overlay.remove();
+  });
+
+  document.body.appendChild(overlay);
+  document.body.appendChild(modal);
+
+  // Close button
+  const closeBtn = document.getElementById('close-shortcuts-modal');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      modal.remove();
+      overlay.remove();
+    });
+    closeBtn.addEventListener('mouseover', () => {
+      closeBtn.style.background = '#5a67d8';
+    });
+    closeBtn.addEventListener('mouseout', () => {
+      closeBtn.style.background = '#667eea';
+    });
+  }
+}
+
+// Toggle compact toolbar mode
+function toggleCompactMode() {
+  toolbarCompact = !toolbarCompact;
+  const toolbar = document.getElementById('blur-toolbar');
+
+  if (!toolbar) return;
+
+  if (toolbarCompact) {
+    // Hide button text/labels, show only icons
+    toolbar.style.gap = '2px';
+    toolbar.querySelectorAll('button').forEach(btn => {
+      btn.style.minWidth = '28px';
+      btn.style.padding = '6px';
+    });
+    showNotification('Compact mode enabled');
+  } else {
+    // Restore normal mode
+    toolbar.style.gap = '4px';
+    toolbar.querySelectorAll('button').forEach(btn => {
+      btn.style.minWidth = '32px';
+      btn.style.padding = '8px';
+    });
+    showNotification('Compact mode disabled');
+  }
+}
+
+// Update active tool visual feedback
+function setActiveTool(toolName) {
+  // Clear all active states
+  document.querySelectorAll('#blur-toolbar button').forEach(btn => {
+    btn.style.background = 'rgba(0, 0, 0, 0.02)';
+    btn.style.boxShadow = 'none';
+  });
+
+  // Set new active tool
+  activeToolMode = toolName;
+
+  if (toolName && document.getElementById(toolName)) {
+    const activeBtn = document.getElementById(toolName);
+    activeBtn.style.background = '#667eea';
+    activeBtn.style.color = 'white';
+    activeBtn.style.boxShadow = '0 2px 8px rgba(102, 126, 234, 0.4)';
+  }
 }
 
 // Quick select common elements
@@ -464,6 +662,7 @@ function setupToolbarEventListeners() {
       isDrawing = false;
       isSelectingText = false;
       document.body.style.cursor = 'crosshair';
+      setActiveTool('toolbar-select-element');
     });
   }
 
@@ -477,6 +676,7 @@ function setupToolbarEventListeners() {
       document.body.style.cursor = 'text';
       originalUserSelect = getComputedStyle(document.body).userSelect;
       document.body.style.userSelect = 'text';
+      setActiveTool('toolbar-select-text');
     });
   }
 
@@ -547,6 +747,7 @@ function setupToolbarEventListeners() {
       isSelecting = false;
       isSelectingText = false;
       createOverlay();
+      setActiveTool('toolbar-draw-region');
     });
   }
 
@@ -608,6 +809,14 @@ function setupToolbarEventListeners() {
       await new Promise(resolve => setTimeout(resolve, 500));
       if (toolbar) toolbar.style.display = 'block';
       if (overlay) overlay.style.display = 'block';
+    });
+  }
+
+  // Help button
+  const helpBtn = document.getElementById('toolbar-help');
+  if (helpBtn) {
+    helpBtn.addEventListener('click', () => {
+      showKeyboardShortcuts();
     });
   }
 
@@ -809,11 +1018,27 @@ function setupToolbarEventListeners() {
 
 // Keyboard shortcuts
 document.addEventListener('keydown', (event) => {
+  // Don't trigger shortcuts if user is typing in an input field (except for inputs in our toolbar)
+  const targetIsInput = event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA';
+  const targetInToolbar = event.target.closest('#blur-toolbar-container');
+
+  if (targetIsInput && !targetInToolbar) {
+    return;
+  }
+
+  // ?: Show keyboard shortcuts help
+  if (event.key === '?' || (event.shiftKey && event.key === '/')) {
+    event.preventDefault();
+    showKeyboardShortcuts();
+    return;
+  }
+
   // Ctrl+Shift+B: Toggle blur mode
   if (event.ctrlKey && event.shiftKey && event.key === 'B') {
     event.preventDefault();
     const modeToggle = document.getElementById('toolbar-mode-toggle');
     if (modeToggle) modeToggle.click();
+    return;
   }
 
   // Ctrl+Shift+E: Quick select element
@@ -821,6 +1046,7 @@ document.addEventListener('keydown', (event) => {
     event.preventDefault();
     const selectBtn = document.getElementById('toolbar-select-element');
     if (selectBtn) selectBtn.click();
+    return;
   }
 
   // Ctrl+Z: Undo
@@ -828,6 +1054,7 @@ document.addEventListener('keydown', (event) => {
     event.preventDefault();
     const undoBtn = document.getElementById('toolbar-undo');
     if (undoBtn) undoBtn.click();
+    return;
   }
 
   // Ctrl+Shift+Z or Ctrl+Y: Redo
@@ -835,6 +1062,65 @@ document.addEventListener('keydown', (event) => {
     event.preventDefault();
     const redoBtn = document.getElementById('toolbar-redo');
     if (redoBtn) redoBtn.click();
+    return;
+  }
+
+  // Ctrl+S: Save configuration
+  if (event.ctrlKey && event.key === 's') {
+    event.preventDefault();
+    saveCurrentState();
+    return;
+  }
+
+  // Ctrl+O: Load configuration
+  if (event.ctrlKey && event.key === 'o') {
+    event.preventDefault();
+    loadSavedState();
+    return;
+  }
+
+  // Ctrl+E: Export configuration
+  if (event.ctrlKey && event.key === 'e') {
+    event.preventDefault();
+    exportConfiguration();
+    return;
+  }
+
+  // Ctrl+A: Select all images (when toolbar is active)
+  if (event.ctrlKey && !event.shiftKey && event.key === 'a' && document.getElementById('blur-toolbar-container')) {
+    event.preventDefault();
+    quickSelectElements('img', 'images');
+    return;
+  }
+
+  // Ctrl+Shift+A: Select all videos
+  if (event.ctrlKey && event.shiftKey && event.key === 'A') {
+    event.preventDefault();
+    quickSelectElements('video', 'videos');
+    return;
+  }
+
+  // 1, 2, 3: Quick blur presets
+  if (!event.ctrlKey && !event.shiftKey && event.key >= '1' && event.key <= '3') {
+    const presets = [BLUR_PRESETS.light, BLUR_PRESETS.medium, BLUR_PRESETS.heavy];
+    const presetNames = ['Light', 'Medium', 'Heavy'];
+    const index = parseInt(event.key) - 1;
+
+    blurIntensity = presets[index];
+    updateBlurStyle();
+
+    const intensitySlider = document.getElementById('toolbar-blur-intensity');
+    if (intensitySlider) intensitySlider.value = blurIntensity;
+
+    showNotification(`${presetNames[index]} blur preset applied`);
+    return;
+  }
+
+  // Delete: Clear all
+  if (event.key === 'Delete' && document.getElementById('blur-toolbar-container')) {
+    const clearBtn = document.getElementById('toolbar-clear-all');
+    if (clearBtn) clearBtn.click();
+    return;
   }
 
   // Ctrl+Shift+H: Toggle toolbar visibility
@@ -844,11 +1130,30 @@ document.addEventListener('keydown', (event) => {
     if (toolbarContainer) {
       toolbarVisible = !toolbarVisible;
       toolbarContainer.style.display = toolbarVisible ? 'block' : 'none';
+      showNotification(toolbarVisible ? 'Toolbar shown' : 'Toolbar hidden');
     }
+    return;
   }
 
-  // Escape: Cancel current mode
+  // Ctrl+Shift+C: Toggle compact mode
+  if (event.ctrlKey && event.shiftKey && event.key === 'C') {
+    event.preventDefault();
+    toggleCompactMode();
+    return;
+  }
+
+  // Escape: Cancel current mode or close modals
   if (event.key === 'Escape') {
+    // Close keyboard shortcuts modal if open
+    const modal = document.getElementById('blur-shortcuts-modal');
+    const modalOverlay = document.getElementById('blur-shortcuts-overlay');
+    if (modal) {
+      modal.remove();
+      if (modalOverlay) modalOverlay.remove();
+      return;
+    }
+
+    // Cancel selection modes
     if (isSelecting) {
       exitSelectMode();
     } else if (isDrawing || isSelectingText) {

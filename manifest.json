@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Element Blur",
-  "version": "1.2",
-  "description": "Blur or highlight elements, regions, and text with presets, save/load configurations, export/import, keyboard shortcuts, and auto-apply per domain.",
+  "version": "1.3",
+  "description": "Blur or highlight elements with keyboard shortcuts, presets, save/load, export/import. Press ? for help. Compact mode available.",
   "permissions": [
     "activeTab",
     "scripting",
