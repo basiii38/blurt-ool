@@ -333,7 +333,8 @@ async function loadSavedState(showNoConfigNotification = true) {
   const domain = getCurrentDomain();
 
   try {
-    const result = await chrome.storage.local.get(['blurConfigs']);
+    // First, try to load from saved configurations
+    const result = await chrome.storage.local.get(['blurConfigs', 'customPresets']);
     const configs = result.blurConfigs || {};
     const state = configs[domain];
 
@@ -342,12 +343,28 @@ async function loadSavedState(showNoConfigNotification = true) {
       clearAllBlurs();
       applySavedState(state);
       return true;
-    } else {
-      if (showNoConfigNotification) {
-        showNotification('No saved configuration for ' + domain);
-      }
-      return false;
     }
+
+    // If no saved config, check for custom presets for this domain
+    const allPresets = result.customPresets || [];
+    const domainPresets = allPresets.filter(p => p.domain === domain);
+
+    if (domainPresets.length > 0) {
+      // Apply the most recently created preset for this domain
+      const mostRecent = domainPresets.sort((a, b) =>
+        new Date(b.createdAt) - new Date(a.createdAt)
+      )[0];
+
+      clearAllBlurs();
+      applyPreset(mostRecent);
+      return true;
+    }
+
+    // No saved config or presets found
+    if (showNoConfigNotification) {
+      showNotification('No saved configuration or presets for ' + domain);
+    }
+    return false;
   } catch (error) {
     console.error('Error loading state:', error);
     showNotification('Error loading configuration', true);
