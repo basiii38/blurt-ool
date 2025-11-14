@@ -34,6 +34,7 @@ function toggleToolbar() {
           </svg>
         </div>
         <button id="toolbar-mode-toggle" title="Switch to Highlight Mode">🌫️</button>
+        <div class="toolbar-separator"></div>
         <button id="toolbar-select-element" title="Select Element (Ctrl+Shift+E)">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M11.4 12.8L8.9 8.45L13.48 10.55L11.85 11.18Z" stroke="currentColor" stroke-width="1" fill="none"/>
@@ -58,6 +59,7 @@ function toggleToolbar() {
             <rect x="10" y="10" width="4" height="4" rx="1" fill="currentColor" opacity="0.7"/>
           </svg>
         </button>
+        <div class="toolbar-separator"></div>
         <button id="toolbar-presets" title="Blur Presets">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <circle cx="8" cy="3" r="1.5" fill="currentColor"/>
@@ -75,6 +77,7 @@ function toggleToolbar() {
           </svg>
           <input type="range" id="toolbar-blur-intensity" min="0" max="20" value="5" title="Blur Intensity">
         </div>
+        <div class="toolbar-separator"></div>
         <button id="toolbar-save" title="Save (Ctrl+S)">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M3 2C2.45 2 2 2.45 2 3V13C2 13.55 2.45 14 3 14H13C13.55 14 14 13.55 14 13V5L11 2H3Z" stroke="currentColor" stroke-width="1.5" fill="none"/>
@@ -100,6 +103,7 @@ function toggleToolbar() {
             <path d="M3 9V12C3 12.55 3.45 13 4 13H12C12.55 13 13 12.55 13 12V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
         </button>
+        <div class="toolbar-separator"></div>
         <button id="toolbar-screenshot" title="Screenshot">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <rect x="2" y="4" width="12" height="9" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/>
@@ -124,6 +128,7 @@ function toggleToolbar() {
             <rect x="1" y="3" width="14" height="1.5" rx="0.5" fill="currentColor"/>
           </svg>
         </button>
+        <div class="toolbar-separator"></div>
         <button id="toolbar-help" title="Help (?)">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5" fill="none"/>
@@ -199,8 +204,8 @@ function toggleToolbar() {
         padding: 8px;
         border: none;
         border-radius: 8px;
-        background: rgba(0, 0, 0, 0.02);
-        color: #374151;
+        background: rgba(0, 0, 0, 0.05);
+        color: #1f2937;
         min-width: 32px;
         height: 32px;
         display: flex;
@@ -210,34 +215,95 @@ function toggleToolbar() {
         pointer-events: auto !important;
         filter: none !important;
         z-index: 2147483647 !important;
+        border: 1px solid rgba(0, 0, 0, 0.08);
       }
-      
+
+      #blur-toolbar button svg {
+        filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.5));
+      }
+
       #blur-toolbar button:hover {
-        background: rgba(0, 0, 0, 0.08);
+        background: rgba(102, 126, 234, 0.15);
+        border-color: rgba(102, 126, 234, 0.3);
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
       }
-      
+
       #blur-toolbar button:active {
         transform: translateY(0);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
-      
+
       #toolbar-mode-toggle {
         font-size: 18px;
         line-height: 1;
         padding: 6px 8px;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(139, 92, 246, 0.1));
+        border: 1px solid rgba(102, 126, 234, 0.2);
       }
-      
+
+      #toolbar-mode-toggle:hover {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(139, 92, 246, 0.2));
+      }
+
+      /* Enhanced visibility for Quick Select and Presets */
+      #toolbar-quick-select,
+      #toolbar-presets {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.08));
+        border: 1px solid rgba(59, 130, 246, 0.2);
+      }
+
+      #toolbar-quick-select:hover,
+      #toolbar-presets:hover {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.15));
+        border-color: rgba(59, 130, 246, 0.4);
+      }
+
+      #toolbar-quick-select svg,
+      #toolbar-presets svg {
+        filter: drop-shadow(0 1px 2px rgba(59, 130, 246, 0.3));
+      }
+
+      /* Visual separators between button groups */
+      .toolbar-separator {
+        width: 1px;
+        height: 24px;
+        background: linear-gradient(to bottom,
+          transparent,
+          rgba(0, 0, 0, 0.15) 20%,
+          rgba(0, 0, 0, 0.15) 80%,
+          transparent);
+        margin: 0 4px;
+        flex-shrink: 0;
+      }
+
+      /* Enhanced toolbar container */
+      #blur-toolbar {
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15),
+                    0 2px 8px rgba(0, 0, 0, 0.1),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      }
+
+      /* Status bar enhancement */
+      #toolbar-status-bar {
+        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.04));
+      }
+
       .color-picker-container {
         display: flex;
         align-items: center;
-        background: rgba(0, 0, 0, 0.02);
+        background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(245, 158, 11, 0.1));
+        border: 1px solid rgba(251, 191, 36, 0.2);
         border-radius: 8px;
         padding: 4px;
         pointer-events: auto !important;
         filter: none !important;
         z-index: 2147483647 !important;
+      }
+
+      .color-picker-container:hover {
+        background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.15));
+        border-color: rgba(251, 191, 36, 0.3);
       }
       
       #toolbar-color-picker {
@@ -268,16 +334,23 @@ function toggleToolbar() {
         display: flex;
         align-items: center;
         gap: 6px;
-        background: rgba(0, 0, 0, 0.02);
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(124, 58, 237, 0.08));
+        border: 1px solid rgba(139, 92, 246, 0.15);
         border-radius: 8px;
         padding: 6px 10px;
         pointer-events: auto !important;
         filter: none !important;
         z-index: 2147483647 !important;
       }
-      
+
+      .slider-container:hover {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(124, 58, 237, 0.12));
+        border-color: rgba(139, 92, 246, 0.25);
+      }
+
       .slider-container svg {
-        color: #6b7280;
+        color: #7c3aed;
+        filter: drop-shadow(0 1px 2px rgba(139, 92, 246, 0.2));
       }
       
       #blur-toolbar input[type="range"] {
@@ -294,25 +367,28 @@ function toggleToolbar() {
         width: 16px;
         height: 16px;
         border-radius: 50%;
-        background: #374151;
+        background: linear-gradient(135deg, #7c3aed, #6d28d9);
         cursor: pointer;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4),
+                    0 0 0 2px rgba(255, 255, 255, 0.8);
         transition: all 0.2s ease;
       }
-      
+
       #blur-toolbar input[type="range"]::-webkit-slider-thumb:hover {
-        background: #1f2937;
-        transform: scale(1.1);
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        transform: scale(1.15);
+        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.5),
+                    0 0 0 3px rgba(255, 255, 255, 0.9);
       }
-      
+
       #blur-toolbar input[type="range"]::-moz-range-thumb {
         width: 16px;
         height: 16px;
         border-radius: 50%;
-        background: #374151;
+        background: linear-gradient(135deg, #7c3aed, #6d28d9);
         cursor: pointer;
-        border: none;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        border: 2px solid rgba(255, 255, 255, 0.8);
+        box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
       }
     `;
     document.head.appendChild(style);
