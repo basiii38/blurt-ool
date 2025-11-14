@@ -329,7 +329,7 @@ async function saveCurrentState() {
   }
 }
 
-async function loadSavedState() {
+async function loadSavedState(showNoConfigNotification = true) {
   const domain = getCurrentDomain();
 
   try {
@@ -338,13 +338,21 @@ async function loadSavedState() {
     const state = configs[domain];
 
     if (state) {
+      // Clear current state before loading
+      clearAllBlurs();
       applySavedState(state);
       return true;
+    } else {
+      if (showNoConfigNotification) {
+        showNotification('No saved configuration for ' + domain);
+      }
+      return false;
     }
   } catch (error) {
     console.error('Error loading state:', error);
+    showNotification('Error loading configuration', true);
+    return false;
   }
-  return false;
 }
 
 function applySavedState(state) {
@@ -1512,7 +1520,9 @@ function setupToolbarEventListeners() {
 
   // Load configuration button
   if (loadBtn) {
-    loadBtn.addEventListener('click', loadSavedState);
+    loadBtn.addEventListener('click', async () => {
+      await loadSavedState();
+    });
   }
 
   // Export configuration button
@@ -1912,9 +1922,9 @@ window.addEventListener('message', async (event) => {
   if (event.data.type === 'SETUP_TOOLBAR') {
     setupToolbarEventListeners();
 
-    // Auto-load saved configuration for this domain
-    setTimeout(() => {
-      loadSavedState();
+    // Auto-load saved configuration for this domain (silent if no config)
+    setTimeout(async () => {
+      await loadSavedState(false);
     }, 500);
   }
 });
