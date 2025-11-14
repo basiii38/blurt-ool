@@ -1,6 +1,6 @@
 # Element Blur - Chrome Extension
 
-**Version 1.3**
+**Version 1.4**
 
 A powerful Chrome extension that allows you to blur or highlight any element, region, or text on web pages with advanced features including save/load configurations, presets, extensive keyboard shortcuts, and auto-apply functionality. Press **?** for help!
 
@@ -54,9 +54,10 @@ Quickly blur/highlight common elements:
 - **Escape**: Cancel current mode or close modals
 
 ### UI Features
+- **Tabbed Toolbar Interface**: Organized into 3 tabs (Select, Effects, File) for better workflow
 - **Draggable Toolbar**: Move the toolbar anywhere on the page
-- **Compact Mode**: Toggle compact toolbar mode (Ctrl+Shift+C) for minimal UI
 - **Active Tool Highlighting**: Visual feedback shows which tool is currently active
+- **Status Indicator**: Real-time status bar shows current mode and helpful hints
 - **Keyboard Shortcuts Help**: Press **?** to see all available shortcuts
 - **Modern Design**: Clean, minimalist interface with smooth animations
 - **Visual Feedback**: See notifications for actions (save, load, export, etc.)
@@ -219,7 +220,22 @@ node create-png-icons.js
 
 ## Changelog
 
-### Version 1.3 (Current)
+### Version 1.4 (Current)
+**New Features:**
+- ✨ **Tabbed Toolbar Interface** - Organized UI with 3 tabs (Select, Effects, File)
+  - **Select Tab**: Mode toggle, element selection, draw region, text selection, quick select, undo/redo, clear
+  - **Effects Tab**: Blur presets, color picker, intensity slider, screenshot
+  - **File Tab**: Save, load, export, import configurations
+- ✨ **Visual Tab Indicators** - Active tab highlighted in purple with smooth transitions
+- ✨ **Improved Organization** - Related tools grouped logically for better workflow
+
+**UX Improvements:**
+- 🎨 Cleaner, more organized toolbar layout
+- 🎨 Tab icons clearly indicate each category
+- 🎨 Help and Close buttons always visible in right corner
+- 🎨 Reduced visual clutter with categorized controls
+
+### Version 1.3
 **New Features:**
 - ✨ **Keyboard Shortcuts Help Modal** - Press **?** to see all shortcuts
 - ✨ **Enhanced Keyboard Shortcuts** - 15+ new shortcuts including:
@@ -293,7 +309,7 @@ Developed with ❤️ for privacy-conscious users who need to blur sensitive inf
 
 ---
 
-**Version**: 1.3
+**Version**: 1.4
 **Last Updated**: November 2024
 **Manifest Version**: 3 (Chrome Extensions Manifest V3)
 

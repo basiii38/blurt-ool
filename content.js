@@ -655,6 +655,27 @@ function quickSelectElements(selector, description) {
 }
 
 function setupToolbarEventListeners() {
+  // Tab switching logic
+  const tabButtons = document.querySelectorAll('.toolbar-tab');
+  const tabPanels = document.querySelectorAll('.toolbar-panel');
+
+  tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const targetTab = button.dataset.tab;
+
+      // Remove active class from all tabs and panels
+      tabButtons.forEach(btn => btn.classList.remove('active'));
+      tabPanels.forEach(panel => panel.classList.remove('active'));
+
+      // Add active class to clicked tab and corresponding panel
+      button.classList.add('active');
+      const targetPanel = document.querySelector(`.toolbar-panel[data-panel="${targetTab}"]`);
+      if (targetPanel) {
+        targetPanel.classList.add('active');
+      }
+    });
+  });
+
   const selectBtn = document.getElementById('toolbar-select-element');
   const drawBtn = document.getElementById('toolbar-draw-region');
   const clearBtn = document.getElementById('toolbar-clear-all');
