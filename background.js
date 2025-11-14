@@ -140,6 +140,13 @@ function toggleToolbar() {
             <rect x="1" y="3" width="14" height="1.5" rx="0.5" fill="currentColor"/>
           </svg>
         </button>
+        <button id="toolbar-help" title="Keyboard Shortcuts (?)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <path d="M8 11.5V11.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M8 4.5C6.62 4.5 5.5 5.62 5.5 7H7C7 6.45 7.45 6 8 6C8.55 6 9 6.45 9 7C9 7.5 8.5 7.75 8 8.5V9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
         <button id="toolbar-close" title="Close (Ctrl+Shift+H to toggle)">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>

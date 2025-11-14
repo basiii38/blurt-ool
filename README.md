@@ -1,8 +1,8 @@
 # Element Blur - Chrome Extension
 
-**Version 1.2**
+**Version 1.3**
 
-A powerful Chrome extension that allows you to blur or highlight any element, region, or text on web pages with advanced features including save/load configurations, presets, keyboard shortcuts, and auto-apply functionality.
+A powerful Chrome extension that allows you to blur or highlight any element, region, or text on web pages with advanced features including save/load configurations, presets, extensive keyboard shortcuts, and auto-apply functionality. Press **?** for help!
 
 ## Features
 
@@ -37,18 +37,31 @@ Quickly blur/highlight common elements:
 - Ad Elements
 
 #### Keyboard Shortcuts
+- **?** or **Shift+/**: Show keyboard shortcuts help modal
 - **Ctrl+Shift+B**: Toggle between Blur and Highlight modes
 - **Ctrl+Shift+E**: Activate element selection tool
 - **Ctrl+Z**: Undo last action
 - **Ctrl+Shift+Z** or **Ctrl+Y**: Redo last undone action
+- **Ctrl+S**: Save current configuration
+- **Ctrl+O**: Load saved configuration
+- **Ctrl+E**: Export configuration to file
+- **Ctrl+A**: Select all images
+- **Ctrl+Shift+A**: Select all videos
+- **1, 2, 3**: Quick blur presets (Light, Medium, Heavy)
+- **Delete**: Clear all blur/highlight effects
 - **Ctrl+Shift+H**: Toggle toolbar visibility
-- **Escape**: Cancel current selection mode
+- **Ctrl+Shift+C**: Toggle compact toolbar mode
+- **Escape**: Cancel current mode or close modals
 
 ### UI Features
 - **Draggable Toolbar**: Move the toolbar anywhere on the page
+- **Compact Mode**: Toggle compact toolbar mode (Ctrl+Shift+C) for minimal UI
+- **Active Tool Highlighting**: Visual feedback shows which tool is currently active
+- **Keyboard Shortcuts Help**: Press **?** to see all available shortcuts
 - **Modern Design**: Clean, minimalist interface with smooth animations
 - **Visual Feedback**: See notifications for actions (save, load, export, etc.)
 - **Undo/Redo**: Full history management with undo/redo support
+- **Smart Filename**: Exports use format `blur-domain.com-2024-11-14.json`
 
 ## Installation
 
@@ -206,7 +219,28 @@ node create-png-icons.js
 
 ## Changelog
 
-### Version 1.2 (Current)
+### Version 1.3 (Current)
+**New Features:**
+- ✨ **Keyboard Shortcuts Help Modal** - Press **?** to see all shortcuts
+- ✨ **Enhanced Keyboard Shortcuts** - 15+ new shortcuts including:
+  - Ctrl+S (Save), Ctrl+O (Load), Ctrl+E (Export)
+  - Ctrl+A (Select all images), Ctrl+Shift+A (Select all videos)
+  - 1, 2, 3 (Quick preset application)
+  - Delete (Clear all effects)
+- ✨ **Compact Toolbar Mode** - Toggle with Ctrl+Shift+C for minimal UI
+- ✨ **Active Tool Visual Feedback** - Highlighted buttons show active tool
+- ✨ **Smart Export Filenames** - Format: `blur-domain.com-2024-11-14.json`
+- ✨ **Help Button** - Click **?** button in toolbar for shortcuts guide
+- ✨ **Input Field Protection** - Shortcuts disabled when typing in inputs
+
+**UX Improvements:**
+- 🎨 Beautiful keyboard shortcuts modal with categorized shortcuts
+- 🎨 Active tool highlighting with color and shadow
+- 🎨 Compact mode reduces toolbar size by 25%
+- 🎨 Smart notifications for all keyboard actions
+- 🎨 Modal closes with Esc or ? key
+
+### Version 1.2
 **New Features:**
 - ✨ Save/Load configurations per domain
 - ✨ Auto-apply saved configurations
@@ -259,6 +293,8 @@ Developed with ❤️ for privacy-conscious users who need to blur sensitive inf
 
 ---
 
-**Version**: 1.2
-**Last Updated**: 2024
+**Version**: 1.3
+**Last Updated**: November 2024
 **Manifest Version**: 3 (Chrome Extensions Manifest V3)
+
+💡 **Pro Tip**: Press **?** anytime to see all keyboard shortcuts!
