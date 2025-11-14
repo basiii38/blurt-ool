@@ -54,7 +54,6 @@ Quickly blur/highlight common elements:
 - **Escape**: Cancel current mode or close modals
 
 ### UI Features
-- **Tabbed Toolbar Interface**: Organized into 3 tabs (Select, Effects, File) for better workflow
 - **Draggable Toolbar**: Move the toolbar anywhere on the page
 - **Active Tool Highlighting**: Visual feedback shows which tool is currently active
 - **Status Indicator**: Real-time status bar shows current mode and helpful hints
@@ -63,6 +62,7 @@ Quickly blur/highlight common elements:
 - **Visual Feedback**: See notifications for actions (save, load, export, etc.)
 - **Undo/Redo**: Full history management with undo/redo support
 - **Smart Filename**: Exports use format `blur-domain.com-2024-11-14.json`
+- **Compact Mode**: Toggle compact toolbar mode (Ctrl+Shift+C) for minimal UI
 
 ## Installation
 
@@ -221,19 +221,18 @@ node create-png-icons.js
 ## Changelog
 
 ### Version 1.4 (Current)
-**New Features:**
-- ✨ **Tabbed Toolbar Interface** - Organized UI with 3 tabs (Select, Effects, File)
-  - **Select Tab**: Mode toggle, element selection, draw region, text selection, quick select, undo/redo, clear
-  - **Effects Tab**: Blur presets, color picker, intensity slider, screenshot
-  - **File Tab**: Save, load, export, import configurations
-- ✨ **Visual Tab Indicators** - Active tab highlighted in purple with smooth transitions
-- ✨ **Improved Organization** - Related tools grouped logically for better workflow
+**Bug Fixes & Improvements:**
+- 🐛 **Fixed Keyboard Shortcuts** - '?' shortcut now works reliably (Shift+/)
+- ✨ **Enhanced Active Tool Feedback** - Purple highlighting shows which tool is active
+- ✨ **Status Indicator** - Real-time status bar at bottom shows current mode
+- ✨ **Improved Cursor Changes** - Cursor properly changes based on active tool
+- 🎨 **Better Visual Feedback** - Clear indication of current mode and tool state
 
-**UX Improvements:**
-- 🎨 Cleaner, more organized toolbar layout
-- 🎨 Tab icons clearly indicate each category
-- 🎨 Help and Close buttons always visible in right corner
-- 🎨 Reduced visual clutter with categorized controls
+**Technical Improvements:**
+- Centralized cursor management in updateBlurStyle()
+- Enhanced setActiveTool() with proper state restoration
+- Added updateStatusIndicator() for real-time status updates
+- Fixed button color restoration on tool deactivation
 
 ### Version 1.3
 **New Features:**

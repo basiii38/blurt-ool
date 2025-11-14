@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Element Blur",
   "version": "1.4",
-  "description": "Blur or highlight elements with tabbed toolbar, keyboard shortcuts, presets, save/load, export/import. Press ? for help.",
+  "description": "Blur or highlight elements with keyboard shortcuts, presets, save/load, export/import. Press ? for help. Active tool feedback.",
   "permissions": [
     "activeTab",
     "scripting",
