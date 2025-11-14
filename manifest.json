@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Element Blur",
-  "version": "1.1",
-  "description": "Blur or highlight any element, region, or text on a web page with customizable colors and intensity.",
+  "version": "1.2",
+  "description": "Blur or highlight elements, regions, and text with presets, save/load configurations, export/import, keyboard shortcuts, and auto-apply per domain.",
   "permissions": [
     "activeTab",
     "scripting",
@@ -26,13 +26,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-  "js": ["content.js"]
-    }
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": ["toolbar.html", "toolbar.css"],
-      "matches": ["<all_urls>"]
+      "js": ["content.js"]
     }
   ]
 }
