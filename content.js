@@ -31,6 +31,81 @@ const BLUR_PRESETS = {
 // Custom presets storage
 let customPresets = [];
 
+// Clear all blur and highlight effects
+function clearAllBlurs() {
+  document.querySelectorAll('.blurred').forEach(el => el.classList.remove('blurred'));
+  document.querySelectorAll('.highlighted').forEach(el => el.classList.remove('highlighted'));
+  document.querySelectorAll('.blur-region').forEach(el => el.remove());
+  document.querySelectorAll('.highlight-region').forEach(el => el.remove());
+  document.querySelectorAll('.blur-text').forEach(el => el.classList.remove('blur-text'));
+  document.querySelectorAll('.highlight-text').forEach(el => el.classList.remove('highlight-text'));
+}
+
+// Save complete blur state as a preset
+async function saveAsPreset(name, description = '') {
+  const state = serializeBlurState();
+  const domain = getCurrentDomain();
+
+  const preset = {
+    id: Date.now().toString(),
+    name: name.trim(),
+    description: description.trim(),
+    domain: domain,
+    createdAt: new Date().toISOString(),
+    state: state,
+    // Snapshot of current settings
+    settings: {
+      blurIntensity,
+      highlightColor,
+      highlightOpacity,
+      isHighlightMode
+    }
+  };
+
+  customPresets.push(preset);
+  await saveCustomPresets();
+  return preset;
+}
+
+// Apply a saved preset
+function applyPreset(preset) {
+  // Clear current state
+  clearAllBlurs();
+
+  // Restore settings
+  blurIntensity = preset.settings.blurIntensity || blurIntensity;
+  highlightColor = preset.settings.highlightColor || highlightColor;
+  highlightOpacity = preset.settings.highlightOpacity || highlightOpacity;
+  isHighlightMode = preset.settings.isHighlightMode || false;
+
+  // Update UI
+  const intensitySlider = document.getElementById('toolbar-blur-intensity');
+  const colorPicker = document.getElementById('toolbar-color-picker');
+  const modeToggle = document.getElementById('toolbar-mode-toggle');
+
+  if (intensitySlider) intensitySlider.value = blurIntensity;
+  if (colorPicker) colorPicker.value = highlightColor;
+  if (modeToggle) {
+    modeToggle.textContent = isHighlightMode ? '🖍️' : '🌫️';
+    modeToggle.title = isHighlightMode ? 'Switch to Blur Mode' : 'Switch to Highlight Mode';
+  }
+
+  const colorPickerContainer = document.querySelector('.color-picker-container');
+  if (colorPickerContainer) {
+    colorPickerContainer.style.display = isHighlightMode ? 'flex' : 'none';
+  }
+
+  updateBlurStyle();
+  updateStatusIndicator();
+
+  // Restore blur state
+  if (preset.state) {
+    applySavedState(preset.state);
+  }
+
+  showNotification(`✨ Applied preset: ${preset.name}`);
+}
+
 // History management with memory leak prevention
 const MAX_HISTORY_SIZE = 50;
 
@@ -817,29 +892,70 @@ function showPresetsManager() {
 
   renderCustomPresets(customPresetsContainer);
 
+  // Show current blur state info
+  const currentState = serializeBlurState();
+  const blurredCount = currentState.blurred?.length || 0;
+  const highlightedCount = currentState.highlighted?.length || 0;
+  const regionsCount = (currentState.regions?.length || 0) + (currentState.highlightRegions?.length || 0);
+
+  const currentStateInfo = document.createElement('div');
+  currentStateInfo.style.cssText = `
+    padding: 12px;
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.05), rgba(22, 163, 74, 0.05));
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: #065f46;
+  `;
+
+  const hasContent = blurredCount > 0 || highlightedCount > 0 || regionsCount > 0;
+
+  if (hasContent) {
+    currentStateInfo.innerHTML = `
+      <div style="font-weight: 600; margin-bottom: 6px;">📊 Current Blur State:</div>
+      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        ${blurredCount > 0 ? `<span>🌫️ ${blurredCount} blurred</span>` : ''}
+        ${highlightedCount > 0 ? `<span>🖍️ ${highlightedCount} highlighted</span>` : ''}
+        ${regionsCount > 0 ? `<span>▢ ${regionsCount} regions</span>` : ''}
+      </div>
+    `;
+  } else {
+    currentStateInfo.innerHTML = `
+      <div style="font-weight: 600; margin-bottom: 4px;">ℹ️ No blur state yet</div>
+      <div style="font-size: 12px; opacity: 0.8;">Blur some elements first, then save as a preset!</div>
+    `;
+  }
+
   const createBtn = document.createElement('button');
-  createBtn.textContent = '+ Create New Preset';
+  createBtn.textContent = hasContent ? '+ Save Current State as Preset' : '+ Create New Preset';
+  createBtn.disabled = !hasContent;
   createBtn.style.cssText = `
     width: 100%;
     padding: 12px;
     border: 2px dashed #667eea;
     background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
     border-radius: 8px;
-    cursor: pointer;
-    color: #667eea;
+    cursor: ${hasContent ? 'pointer' : 'not-allowed'};
+    color: ${hasContent ? '#667eea' : '#9ca3af'};
     font-weight: 600;
     font-size: 14px;
+    opacity: ${hasContent ? '1' : '0.5'};
   `;
-  createBtn.addEventListener('mouseover', () => {
-    createBtn.style.background = 'linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1))';
-  });
-  createBtn.addEventListener('mouseout', () => {
-    createBtn.style.background = 'linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05))';
-  });
-  createBtn.addEventListener('click', () => createNewPreset());
+
+  if (hasContent) {
+    createBtn.addEventListener('mouseover', () => {
+      createBtn.style.background = 'linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1))';
+    });
+    createBtn.addEventListener('mouseout', () => {
+      createBtn.style.background = 'linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05))';
+    });
+    createBtn.addEventListener('click', () => createNewPreset());
+  }
 
   customSection.appendChild(customTitle);
   customSection.appendChild(customPresetsContainer);
+  customSection.appendChild(currentStateInfo);
   customSection.appendChild(createBtn);
 
   // Action buttons
@@ -899,7 +1015,7 @@ function showPresetsManager() {
 }
 
 // Create preset button
-function createPresetButton(name, value, desc, isCustom) {
+function createPresetButton(name, valueOrPreset, desc, isCustom) {
   const btn = document.createElement('div');
   btn.style.cssText = `
     padding: 12px;
@@ -907,7 +1023,7 @@ function createPresetButton(name, value, desc, isCustom) {
     background: white;
     border-radius: 8px;
     cursor: pointer;
-    text-align: center;
+    text-align: ${isCustom ? 'left' : 'center'};
     transition: all 0.2s ease;
     position: relative;
   `;
@@ -921,62 +1037,84 @@ function createPresetButton(name, value, desc, isCustom) {
     margin-bottom: 4px;
   `;
 
-  const valueEl = document.createElement('div');
-  valueEl.textContent = desc || `${value}px`;
-  valueEl.style.cssText = `
-    font-size: 12px;
-    color: #6b7280;
-  `;
-
   btn.appendChild(nameEl);
-  btn.appendChild(valueEl);
 
-  if (isCustom) {
+  if (isCustom && typeof valueOrPreset === 'object') {
+    // New custom preset with full blur state
+    const preset = valueOrPreset;
+    const blurredCount = preset.state?.blurred?.length || 0;
+    const highlightedCount = preset.state?.highlighted?.length || 0;
+    const regionsCount = (preset.state?.regions?.length || 0) + (preset.state?.highlightRegions?.length || 0);
+
+    if (preset.description) {
+      const descEl = document.createElement('div');
+      descEl.textContent = preset.description;
+      descEl.style.cssText = `
+        font-size: 11px;
+        color: #9ca3af;
+        margin-bottom: 6px;
+        font-style: italic;
+      `;
+      btn.appendChild(descEl);
+    }
+
+    const infoEl = document.createElement('div');
+    infoEl.style.cssText = `
+      font-size: 11px;
+      color: #6b7280;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 6px;
+    `;
+
+    const infoParts = [];
+    if (blurredCount > 0) infoParts.push(`🌫️ ${blurredCount}`);
+    if (highlightedCount > 0) infoParts.push(`🖍️ ${highlightedCount}`);
+    if (regionsCount > 0) infoParts.push(`▢ ${regionsCount}`);
+    if (preset.domain) infoParts.push(`🌐 ${preset.domain}`);
+
+    infoEl.textContent = infoParts.join(' · ');
+    btn.appendChild(infoEl);
+
     const actions = document.createElement('div');
     actions.style.cssText = `
       display: flex;
       gap: 4px;
-      justify-content: center;
-      margin-top: 8px;
       padding-top: 8px;
       border-top: 1px solid rgba(0,0,0,0.05);
     `;
 
-    const editBtn = document.createElement('button');
-    editBtn.textContent = '✏️';
-    editBtn.title = 'Edit';
-    editBtn.style.cssText = `
-      border: none;
-      background: rgba(0,0,0,0.05);
-      padding: 4px 8px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 12px;
-    `;
-    editBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      editPreset(name, value);
-    });
-
     const deleteBtn = document.createElement('button');
-    deleteBtn.textContent = '🗑️';
-    deleteBtn.title = 'Delete';
+    deleteBtn.textContent = '🗑️ Delete';
+    deleteBtn.title = 'Delete preset';
     deleteBtn.style.cssText = `
+      flex: 1;
       border: none;
       background: rgba(239, 68, 68, 0.1);
-      padding: 4px 8px;
+      padding: 6px 8px;
       border-radius: 4px;
       cursor: pointer;
-      font-size: 12px;
+      font-size: 11px;
+      color: #dc2626;
+      font-weight: 500;
     `;
     deleteBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      deletePreset(name);
+      deletePreset(preset.id);
     });
 
-    actions.appendChild(editBtn);
     actions.appendChild(deleteBtn);
     btn.appendChild(actions);
+  } else {
+    // Default preset (just intensity value)
+    const valueEl = document.createElement('div');
+    valueEl.textContent = desc || `${valueOrPreset}px`;
+    valueEl.style.cssText = `
+      font-size: 12px;
+      color: #6b7280;
+    `;
+    btn.appendChild(valueEl);
   }
 
   btn.addEventListener('mouseover', () => {
@@ -990,11 +1128,18 @@ function createPresetButton(name, value, desc, isCustom) {
     btn.style.transform = 'translateY(0)';
   });
   btn.addEventListener('click', () => {
-    blurIntensity = value;
-    updateBlurStyle();
-    const intensitySlider = document.getElementById('toolbar-blur-intensity');
-    if (intensitySlider) intensitySlider.value = blurIntensity;
-    showNotification(`✨ Preset applied: ${name} (${value}px)`);
+    if (isCustom && typeof valueOrPreset === 'object') {
+      // Apply full preset (new custom preset with blur state)
+      applyPreset(valueOrPreset);
+    } else {
+      // Apply default preset (just blur intensity)
+      const value = valueOrPreset;
+      blurIntensity = value;
+      updateBlurStyle();
+      const intensitySlider = document.getElementById('toolbar-blur-intensity');
+      if (intensitySlider) intensitySlider.value = blurIntensity;
+      showNotification(`✨ Preset applied: ${name} (${value}px)`);
+    }
   });
 
   return btn;
@@ -1018,20 +1163,18 @@ function renderCustomPresets(container) {
   }
 
   customPresets.forEach(preset => {
-    const btn = createPresetButton(preset.name, preset.value, `${preset.value}px`, true);
+    // Pass the full preset object for new-style presets
+    const btn = createPresetButton(preset.name, preset, null, true);
     container.appendChild(btn);
   });
 }
 
 // Create new preset
-function createNewPreset() {
-  const name = prompt('Enter preset name:');
+async function createNewPreset() {
+  const name = prompt('📝 Enter preset name:\n(e.g., "Client Demo", "Privacy Mode", "Screenshot Ready")');
   if (!name || name.trim() === '') return;
 
-  const value = prompt('Enter blur intensity (0-100px):', '10');
-  if (!value || isNaN(value)) return;
-
-  const blurValue = Math.max(0, Math.min(100, parseInt(value)));
+  const description = prompt('💭 Enter description (optional):\n(e.g., "Blur sidebar and ads for clean screenshots")') || '';
 
   // Check if name already exists
   if (customPresets.some(p => p.name === name.trim())) {
@@ -1039,50 +1182,32 @@ function createNewPreset() {
     return;
   }
 
-  customPresets.push({ name: name.trim(), value: blurValue });
-  saveCustomPresets().then(() => {
-    showNotification(`✅ Preset created: ${name.trim()}`);
+  try {
+    await saveAsPreset(name, description);
+    showNotification(`✅ Preset saved: ${name.trim()}`);
+
     // Refresh manager if open
     const modal = document.getElementById('blur-presets-manager');
     if (modal) {
       modal.remove();
       showPresetsManager();
     }
-  });
-}
-
-// Edit preset
-function editPreset(oldName, oldValue) {
-  const name = prompt('Edit preset name:', oldName);
-  if (!name || name.trim() === '') return;
-
-  const value = prompt('Edit blur intensity (0-100px):', oldValue);
-  if (!value || isNaN(value)) return;
-
-  const blurValue = Math.max(0, Math.min(100, parseInt(value)));
-
-  const index = customPresets.findIndex(p => p.name === oldName);
-  if (index !== -1) {
-    customPresets[index] = { name: name.trim(), value: blurValue };
-    saveCustomPresets().then(() => {
-      showNotification(`✅ Preset updated: ${name.trim()}`);
-      // Refresh manager
-      const modal = document.getElementById('blur-presets-manager');
-      if (modal) {
-        modal.remove();
-        showPresetsManager();
-      }
-    });
+  } catch (error) {
+    console.error('Error creating preset:', error);
+    showNotification('❌ Failed to create preset');
   }
 }
 
 // Delete preset
-function deletePreset(name) {
-  if (!confirm(`Delete preset "${name}"?`)) return;
+function deletePreset(presetId) {
+  const preset = customPresets.find(p => p.id === presetId);
+  if (!preset) return;
 
-  customPresets = customPresets.filter(p => p.name !== name);
+  if (!confirm(`Delete preset "${preset.name}"?`)) return;
+
+  customPresets = customPresets.filter(p => p.id !== presetId);
   saveCustomPresets().then(() => {
-    showNotification(`🗑️ Preset deleted: ${name}`);
+    showNotification(`🗑️ Preset deleted: ${preset.name}`);
     // Refresh manager
     const modal = document.getElementById('blur-presets-manager');
     if (modal) {
@@ -1310,12 +1435,7 @@ function setupToolbarEventListeners() {
   // Clear all button
   if (clearBtn) {
     clearBtn.addEventListener('click', () => {
-      document.querySelectorAll('.blurred').forEach(el => el.classList.remove('blurred'));
-      document.querySelectorAll('.highlighted').forEach(el => el.classList.remove('highlighted'));
-      document.querySelectorAll('.blur-region').forEach(el => el.remove());
-      document.querySelectorAll('.highlight-region').forEach(el => el.remove());
-      document.querySelectorAll('.blur-text').forEach(el => el.classList.remove('blur-text'));
-      document.querySelectorAll('.highlight-text').forEach(el => el.classList.remove('highlight-text'));
+      clearAllBlurs();
       blurHistory = [];
       redoHistory = [];
       removeOverlay();
