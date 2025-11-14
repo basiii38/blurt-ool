@@ -28,6 +28,9 @@ const BLUR_PRESETS = {
   heavy: 15
 };
 
+// Custom presets storage
+let customPresets = [];
+
 // History management with memory leak prevention
 const MAX_HISTORY_SIZE = 50;
 
@@ -654,6 +657,510 @@ function quickSelectElements(selector, description) {
   showNotification(`${isHighlightMode ? 'Highlighted' : 'Blurred'} ${count} ${description}`);
 }
 
+// ===== CUSTOM PRESETS MANAGEMENT =====
+
+// Load custom presets from storage
+async function loadCustomPresets() {
+  try {
+    const result = await chrome.storage.local.get(['customPresets']);
+    customPresets = result.customPresets || [];
+    return customPresets;
+  } catch (error) {
+    console.error('Error loading custom presets:', error);
+    return [];
+  }
+}
+
+// Save custom presets to storage
+async function saveCustomPresets() {
+  try {
+    await chrome.storage.local.set({ customPresets });
+    return true;
+  } catch (error) {
+    console.error('Error saving custom presets:', error);
+    return false;
+  }
+}
+
+// Show presets manager modal
+function showPresetsManager() {
+  // Remove existing modal if any
+  const existing = document.getElementById('blur-presets-manager');
+  if (existing) {
+    existing.remove();
+    return;
+  }
+
+  const modal = document.createElement('div');
+  modal.id = 'blur-presets-manager';
+  modal.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px;
+    padding: 2px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    z-index: ${Z_INDEX_MAX};
+    min-width: 450px;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow: hidden;
+  `;
+
+  const content = document.createElement('div');
+  content.style.cssText = `
+    background: white;
+    border-radius: 14px;
+    padding: 24px;
+    max-height: calc(80vh - 4px);
+    overflow-y: auto;
+  `;
+
+  const header = document.createElement('div');
+  header.style.cssText = `
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  `;
+
+  const title = document.createElement('h2');
+  title.textContent = '✨ Blur Presets Manager';
+  title.style.cssText = `
+    margin: 0;
+    font-size: 24px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  `;
+
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '×';
+  closeBtn.style.cssText = `
+    border: none;
+    background: rgba(0,0,0,0.05);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 24px;
+    line-height: 1;
+    color: #666;
+  `;
+  closeBtn.addEventListener('click', () => modal.remove());
+
+  header.appendChild(title);
+  header.appendChild(closeBtn);
+
+  // Default presets section
+  const defaultSection = document.createElement('div');
+  defaultSection.style.cssText = `margin-bottom: 24px;`;
+
+  const defaultTitle = document.createElement('h3');
+  defaultTitle.textContent = 'Default Presets';
+  defaultTitle.style.cssText = `
+    font-size: 14px;
+    font-weight: 600;
+    color: #666;
+    margin: 0 0 12px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  `;
+
+  const defaultPresetsContainer = document.createElement('div');
+  defaultPresetsContainer.style.cssText = `
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  `;
+
+  const defaultPresets = [
+    { name: 'Light', value: BLUR_PRESETS.light, desc: '3px' },
+    { name: 'Medium', value: BLUR_PRESETS.medium, desc: '8px' },
+    { name: 'Heavy', value: BLUR_PRESETS.heavy, desc: '15px' }
+  ];
+
+  defaultPresets.forEach(preset => {
+    const btn = createPresetButton(preset.name, preset.value, preset.desc, false);
+    defaultPresetsContainer.appendChild(btn);
+  });
+
+  defaultSection.appendChild(defaultTitle);
+  defaultSection.appendChild(defaultPresetsContainer);
+
+  // Custom presets section
+  const customSection = document.createElement('div');
+  customSection.style.cssText = `margin-bottom: 24px;`;
+
+  const customTitle = document.createElement('h3');
+  customTitle.textContent = `Custom Presets (${customPresets.length})`;
+  customTitle.style.cssText = `
+    font-size: 14px;
+    font-weight: 600;
+    color: #666;
+    margin: 0 0 12px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  `;
+
+  const customPresetsContainer = document.createElement('div');
+  customPresetsContainer.id = 'custom-presets-container';
+  customPresetsContainer.style.cssText = `
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+    margin-bottom: 12px;
+  `;
+
+  renderCustomPresets(customPresetsContainer);
+
+  const createBtn = document.createElement('button');
+  createBtn.textContent = '+ Create New Preset';
+  createBtn.style.cssText = `
+    width: 100%;
+    padding: 12px;
+    border: 2px dashed #667eea;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+    border-radius: 8px;
+    cursor: pointer;
+    color: #667eea;
+    font-weight: 600;
+    font-size: 14px;
+  `;
+  createBtn.addEventListener('mouseover', () => {
+    createBtn.style.background = 'linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1))';
+  });
+  createBtn.addEventListener('mouseout', () => {
+    createBtn.style.background = 'linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05))';
+  });
+  createBtn.addEventListener('click', () => createNewPreset());
+
+  customSection.appendChild(customTitle);
+  customSection.appendChild(customPresetsContainer);
+  customSection.appendChild(createBtn);
+
+  // Action buttons
+  const actions = document.createElement('div');
+  actions.style.cssText = `
+    display: flex;
+    gap: 8px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(0,0,0,0.1);
+  `;
+
+  const exportBtn = document.createElement('button');
+  exportBtn.textContent = '📤 Export Presets';
+  exportBtn.style.cssText = `
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+  `;
+  exportBtn.addEventListener('click', exportAllPresets);
+
+  const importBtn = document.createElement('button');
+  importBtn.textContent = '📥 Import Presets';
+  importBtn.style.cssText = `
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #667eea;
+    background: white;
+    color: #667eea;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+  `;
+  importBtn.addEventListener('click', importPresetsFile);
+
+  actions.appendChild(exportBtn);
+  actions.appendChild(importBtn);
+
+  content.appendChild(header);
+  content.appendChild(defaultSection);
+  content.appendChild(customSection);
+  content.appendChild(actions);
+  modal.appendChild(content);
+  document.body.appendChild(modal);
+
+  // Load custom presets
+  loadCustomPresets().then(() => {
+    renderCustomPresets(customPresetsContainer);
+    customTitle.textContent = `Custom Presets (${customPresets.length})`;
+  });
+}
+
+// Create preset button
+function createPresetButton(name, value, desc, isCustom) {
+  const btn = document.createElement('div');
+  btn.style.cssText = `
+    padding: 12px;
+    border: 1px solid rgba(0,0,0,0.1);
+    background: white;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease;
+    position: relative;
+  `;
+
+  const nameEl = document.createElement('div');
+  nameEl.textContent = name;
+  nameEl.style.cssText = `
+    font-weight: 600;
+    font-size: 14px;
+    color: #1f2937;
+    margin-bottom: 4px;
+  `;
+
+  const valueEl = document.createElement('div');
+  valueEl.textContent = desc || `${value}px`;
+  valueEl.style.cssText = `
+    font-size: 12px;
+    color: #6b7280;
+  `;
+
+  btn.appendChild(nameEl);
+  btn.appendChild(valueEl);
+
+  if (isCustom) {
+    const actions = document.createElement('div');
+    actions.style.cssText = `
+      display: flex;
+      gap: 4px;
+      justify-content: center;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(0,0,0,0.05);
+    `;
+
+    const editBtn = document.createElement('button');
+    editBtn.textContent = '✏️';
+    editBtn.title = 'Edit';
+    editBtn.style.cssText = `
+      border: none;
+      background: rgba(0,0,0,0.05);
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    `;
+    editBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      editPreset(name, value);
+    });
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = '🗑️';
+    deleteBtn.title = 'Delete';
+    deleteBtn.style.cssText = `
+      border: none;
+      background: rgba(239, 68, 68, 0.1);
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    `;
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deletePreset(name);
+    });
+
+    actions.appendChild(editBtn);
+    actions.appendChild(deleteBtn);
+    btn.appendChild(actions);
+  }
+
+  btn.addEventListener('mouseover', () => {
+    btn.style.background = 'linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05))';
+    btn.style.borderColor = '#667eea';
+    btn.style.transform = 'translateY(-2px)';
+  });
+  btn.addEventListener('mouseout', () => {
+    btn.style.background = 'white';
+    btn.style.borderColor = 'rgba(0,0,0,0.1)';
+    btn.style.transform = 'translateY(0)';
+  });
+  btn.addEventListener('click', () => {
+    blurIntensity = value;
+    updateBlurStyle();
+    const intensitySlider = document.getElementById('toolbar-blur-intensity');
+    if (intensitySlider) intensitySlider.value = blurIntensity;
+    showNotification(`✨ Preset applied: ${name} (${value}px)`);
+  });
+
+  return btn;
+}
+
+// Render custom presets
+function renderCustomPresets(container) {
+  container.innerHTML = '';
+  if (customPresets.length === 0) {
+    const emptyMsg = document.createElement('div');
+    emptyMsg.textContent = 'No custom presets yet. Create your first one!';
+    emptyMsg.style.cssText = `
+      padding: 24px;
+      text-align: center;
+      color: #9ca3af;
+      font-size: 14px;
+      grid-column: 1 / -1;
+    `;
+    container.appendChild(emptyMsg);
+    return;
+  }
+
+  customPresets.forEach(preset => {
+    const btn = createPresetButton(preset.name, preset.value, `${preset.value}px`, true);
+    container.appendChild(btn);
+  });
+}
+
+// Create new preset
+function createNewPreset() {
+  const name = prompt('Enter preset name:');
+  if (!name || name.trim() === '') return;
+
+  const value = prompt('Enter blur intensity (0-100px):', '10');
+  if (!value || isNaN(value)) return;
+
+  const blurValue = Math.max(0, Math.min(100, parseInt(value)));
+
+  // Check if name already exists
+  if (customPresets.some(p => p.name === name.trim())) {
+    showNotification('❌ Preset name already exists!');
+    return;
+  }
+
+  customPresets.push({ name: name.trim(), value: blurValue });
+  saveCustomPresets().then(() => {
+    showNotification(`✅ Preset created: ${name.trim()}`);
+    // Refresh manager if open
+    const modal = document.getElementById('blur-presets-manager');
+    if (modal) {
+      modal.remove();
+      showPresetsManager();
+    }
+  });
+}
+
+// Edit preset
+function editPreset(oldName, oldValue) {
+  const name = prompt('Edit preset name:', oldName);
+  if (!name || name.trim() === '') return;
+
+  const value = prompt('Edit blur intensity (0-100px):', oldValue);
+  if (!value || isNaN(value)) return;
+
+  const blurValue = Math.max(0, Math.min(100, parseInt(value)));
+
+  const index = customPresets.findIndex(p => p.name === oldName);
+  if (index !== -1) {
+    customPresets[index] = { name: name.trim(), value: blurValue };
+    saveCustomPresets().then(() => {
+      showNotification(`✅ Preset updated: ${name.trim()}`);
+      // Refresh manager
+      const modal = document.getElementById('blur-presets-manager');
+      if (modal) {
+        modal.remove();
+        showPresetsManager();
+      }
+    });
+  }
+}
+
+// Delete preset
+function deletePreset(name) {
+  if (!confirm(`Delete preset "${name}"?`)) return;
+
+  customPresets = customPresets.filter(p => p.name !== name);
+  saveCustomPresets().then(() => {
+    showNotification(`🗑️ Preset deleted: ${name}`);
+    // Refresh manager
+    const modal = document.getElementById('blur-presets-manager');
+    if (modal) {
+      modal.remove();
+      showPresetsManager();
+    }
+  });
+}
+
+// Export all presets
+function exportAllPresets() {
+  const data = {
+    version: '1.0',
+    exportDate: new Date().toISOString(),
+    customPresets: customPresets
+  };
+
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateStr = new Date().toISOString().split('T')[0];
+  a.download = `blur-presets-${dateStr}.json`;
+  a.href = url;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  showNotification(`📤 Exported ${customPresets.length} custom presets`);
+}
+
+// Import presets
+function importPresetsFile() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+
+      if (data.customPresets && Array.isArray(data.customPresets)) {
+        const imported = data.customPresets;
+        let added = 0;
+        let skipped = 0;
+
+        imported.forEach(preset => {
+          if (!customPresets.some(p => p.name === preset.name)) {
+            customPresets.push(preset);
+            added++;
+          } else {
+            skipped++;
+          }
+        });
+
+        await saveCustomPresets();
+        showNotification(`📥 Imported ${added} presets${skipped > 0 ? `, skipped ${skipped} duplicates` : ''}`);
+
+        // Refresh manager
+        const modal = document.getElementById('blur-presets-manager');
+        if (modal) {
+          modal.remove();
+          showPresetsManager();
+        }
+      } else {
+        showNotification('❌ Invalid preset file format');
+      }
+    } catch (error) {
+      console.error('Import error:', error);
+      showNotification('❌ Failed to import presets');
+    }
+  });
+  input.click();
+}
+
+// ===== END CUSTOM PRESETS MANAGEMENT =====
+
 function setupToolbarEventListeners() {
   const selectBtn = document.getElementById('toolbar-select-element');
   const drawBtn = document.getElementById('toolbar-draw-region');
@@ -898,68 +1405,9 @@ function setupToolbarEventListeners() {
     importBtn.addEventListener('click', importConfiguration);
   }
 
-  // Blur presets dropdown
+  // Blur presets manager
   if (presetsBtn) {
-    presetsBtn.addEventListener('click', () => {
-      const menu = document.createElement('div');
-      menu.style.cssText = `
-        position: absolute;
-        top: 45px;
-        right: 20px;
-        background: white;
-        border: 1px solid rgba(0,0,0,0.1);
-        border-radius: 8px;
-        padding: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: ${Z_INDEX_MAX};
-        min-width: 150px;
-      `;
-
-      const presetOptions = [
-        { name: 'Light Blur', value: BLUR_PRESETS.light },
-        { name: 'Medium Blur', value: BLUR_PRESETS.medium },
-        { name: 'Heavy Blur', value: BLUR_PRESETS.heavy }
-      ];
-
-      presetOptions.forEach(preset => {
-        const btn = document.createElement('button');
-        btn.textContent = preset.name;
-        btn.style.cssText = `
-          display: block;
-          width: 100%;
-          padding: 8px 12px;
-          margin: 4px 0;
-          border: none;
-          background: rgba(0,0,0,0.02);
-          border-radius: 6px;
-          cursor: pointer;
-          text-align: left;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        `;
-        btn.addEventListener('mouseover', () => btn.style.background = 'rgba(0,0,0,0.08)');
-        btn.addEventListener('mouseout', () => btn.style.background = 'rgba(0,0,0,0.02)');
-        btn.addEventListener('click', () => {
-          blurIntensity = preset.value;
-          updateBlurStyle();
-          if (intensitySlider) intensitySlider.value = blurIntensity;
-          menu.remove();
-          showNotification(`Preset applied: ${preset.name}`);
-        });
-        menu.appendChild(btn);
-      });
-
-      document.body.appendChild(menu);
-
-      setTimeout(() => {
-        const closeMenu = (e) => {
-          if (!menu.contains(e.target) && e.target !== presetsBtn) {
-            menu.remove();
-            document.removeEventListener('click', closeMenu);
-          }
-        };
-        document.addEventListener('click', closeMenu);
-      }, 100);
-    });
+    presetsBtn.addEventListener('click', showPresetsManager);
   }
 
   // Quick select menu

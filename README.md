@@ -22,11 +22,20 @@ A powerful Chrome extension that allows you to blur or highlight any element, re
 - **Export Configurations**: Export your blur patterns as JSON files
 - **Import Configurations**: Import previously exported configurations
 
-#### Blur Presets
+#### Blur Presets & Customization
+**Default Presets:**
 - **Light Blur** (3px): Subtle blur effect
 - **Medium Blur** (8px): Standard blur effect
 - **Heavy Blur** (15px): Strong blur effect
-- **Custom Intensity**: Adjust blur intensity from 0-20px using the slider
+
+**✨ Custom Presets Manager:**
+- Create **unlimited custom blur presets** with intensities from 0-100px
+- Name your presets (e.g., "Client Demos", "Social Media", "Sensitive Data")
+- Edit and delete custom presets anytime
+- Export your custom presets as JSON to share with team
+- Import preset collections from others
+- Quick access to all presets from the toolbar
+- **Intensity Slider**: Fine-tune blur from 0-100px in real-time
 
 #### Quick Select Elements
 Quickly blur/highlight common elements:
@@ -97,7 +106,7 @@ node create-png-icons.js
 | ▢ | Draw Region | Draw rectangular regions to blur/highlight |
 | T | Select Text | Select and blur/highlight specific text |
 | ⊞ | Quick Select | Quickly select common elements (images, videos, etc.) |
-| ⚙ | Presets | Choose blur intensity presets (Light/Medium/Heavy) |
+| ⚙ | Presets | Open presets manager with default & custom presets |
 | 🎨 | Color Picker | Choose highlight color (Highlight mode only) |
 | ◉ | Intensity Slider | Adjust blur intensity or highlight opacity |
 | 💾 | Save | Save current configuration for this domain |
@@ -221,6 +230,19 @@ node create-png-icons.js
 ## Changelog
 
 ### Version 1.4 (Current)
+**New Features:**
+- ✨ **Custom Blur Presets Manager** - Create unlimited custom blur presets
+  - Blur intensities from 0-100px (extended from 0-20px)
+  - Name your presets for easy identification
+  - Edit and delete custom presets
+  - Export/Import presets as JSON files for team sharing
+  - Beautiful gradient UI with organized preset grid
+- 🎨 **Enhanced Toolbar UX** - Improved visibility and organization
+  - Visual separators between button groups
+  - Gradient backgrounds for Quick Select & Presets buttons
+  - Enhanced button contrast and hover states
+  - Purple gradient slider thumb with better visibility
+
 **Bug Fixes & Improvements:**
 - 🐛 **Fixed Keyboard Shortcuts** - '?' shortcut now works reliably (Shift+/)
 - ✨ **Enhanced Active Tool Feedback** - Purple highlighting shows which tool is active
@@ -229,6 +251,8 @@ node create-png-icons.js
 - 🎨 **Better Visual Feedback** - Clear indication of current mode and tool state
 
 **Technical Improvements:**
+- Extended blur intensity range from 0-20px to 0-100px
+- Custom presets stored in Chrome local storage
 - Centralized cursor management in updateBlurStyle()
 - Enhanced setActiveTool() with proper state restoration
 - Added updateStatusIndicator() for real-time status updates

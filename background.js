@@ -75,7 +75,7 @@ function toggleToolbar() {
             <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5" fill="none"/>
             <circle cx="7" cy="7" r="2" fill="currentColor"/>
           </svg>
-          <input type="range" id="toolbar-blur-intensity" min="0" max="20" value="5" title="Blur Intensity">
+          <input type="range" id="toolbar-blur-intensity" min="0" max="100" value="8" title="Blur Intensity (0-100px)">
         </div>
         <div class="toolbar-separator"></div>
         <button id="toolbar-save" title="Save (Ctrl+S)">
@@ -354,7 +354,7 @@ function toggleToolbar() {
       }
       
       #blur-toolbar input[type="range"] {
-        width: 60px;
+        width: 80px;
         height: 4px;
         appearance: none;
         background: rgba(0, 0, 0, 0.1);
