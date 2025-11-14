@@ -63,7 +63,6 @@ function removeOverlay() {
     overlay.remove();
     overlay = null;
   }
-  document.body.style.cursor = 'default';
   if (lastHighlightedElement) {
     lastHighlightedElement.classList.remove('element-highlight');
     lastHighlightedElement = null;
@@ -76,16 +75,17 @@ function removeOverlay() {
   isSelecting = false;
   isDrawing = false;
   isSelectingText = false;
+  updateBlurStyle(); // Update cursor
   setActiveTool(null); // Clear active tool state
 }
 
 function exitSelectMode() {
-  document.body.style.cursor = 'default';
   if (lastHighlightedElement) {
     lastHighlightedElement.classList.remove('element-highlight');
     lastHighlightedElement = null;
   }
   isSelecting = false;
+  updateBlurStyle(); // Update cursor
   setActiveTool(null); // Clear active tool state
 }
 
@@ -101,7 +101,20 @@ function highlightElement(element) {
 }
 
 function updateBlurStyle() {
+  // Set cursor based on active mode
+  let bodyCursor = 'default';
+  if (isSelecting) {
+    bodyCursor = 'crosshair';
+  } else if (isDrawing) {
+    bodyCursor = 'crosshair';
+  } else if (isSelectingText) {
+    bodyCursor = 'text';
+  }
+
   style.textContent = `
+    body {
+      cursor: ${bodyCursor} !important;
+    }
     .blurred:not(#blur-toolbar-container):not(#blur-toolbar):not(#blur-toolbar *) {
       filter: blur(${blurIntensity}px);
     }
@@ -570,9 +583,10 @@ function toggleCompactMode() {
 
 // Update active tool visual feedback
 function setActiveTool(toolName) {
-  // Clear all active states
+  // Clear all active states - restore original button styles
   document.querySelectorAll('#blur-toolbar button').forEach(btn => {
     btn.style.background = 'rgba(0, 0, 0, 0.02)';
+    btn.style.color = '#374151';
     btn.style.boxShadow = 'none';
   });
 
@@ -584,6 +598,38 @@ function setActiveTool(toolName) {
     activeBtn.style.background = '#667eea';
     activeBtn.style.color = 'white';
     activeBtn.style.boxShadow = '0 2px 8px rgba(102, 126, 234, 0.4)';
+  }
+
+  // Update status indicator
+  updateStatusIndicator();
+}
+
+// Update status indicator
+function updateStatusIndicator() {
+  let statusText = 'Ready';
+  let statusColor = '#6b7280';
+
+  if (isSelecting) {
+    statusText = 'Click element to blur/highlight';
+    statusColor = '#667eea';
+  } else if (isDrawing) {
+    statusText = 'Drag to draw region';
+    statusColor = '#667eea';
+  } else if (isSelectingText) {
+    statusText = 'Select text to blur/highlight';
+    statusColor = '#667eea';
+  } else if (isHighlightMode) {
+    statusText = 'Highlight Mode';
+    statusColor = '#f59e0b';
+  } else {
+    statusText = 'Blur Mode';
+    statusColor = '#3b82f6';
+  }
+
+  const statusIndicator = document.getElementById('toolbar-status');
+  if (statusIndicator) {
+    statusIndicator.textContent = statusText;
+    statusIndicator.style.color = statusColor;
   }
 }
 
@@ -641,6 +687,8 @@ function setupToolbarEventListeners() {
       if (colorPickerContainer) {
         colorPickerContainer.style.display = isHighlightMode ? 'flex' : 'none';
       }
+      updateStatusIndicator();
+      showNotification(isHighlightMode ? 'Highlight Mode' : 'Blur Mode');
     });
   }
 
@@ -661,7 +709,7 @@ function setupToolbarEventListeners() {
       isSelecting = true;
       isDrawing = false;
       isSelectingText = false;
-      document.body.style.cursor = 'crosshair';
+      updateBlurStyle(); // Update cursor
       setActiveTool('toolbar-select-element');
     });
   }
@@ -673,9 +721,9 @@ function setupToolbarEventListeners() {
       isSelectingText = true;
       isSelecting = false;
       isDrawing = false;
-      document.body.style.cursor = 'text';
       originalUserSelect = getComputedStyle(document.body).userSelect;
       document.body.style.userSelect = 'text';
+      updateBlurStyle(); // Update cursor
       setActiveTool('toolbar-select-text');
     });
   }
@@ -747,6 +795,7 @@ function setupToolbarEventListeners() {
       isSelecting = false;
       isSelectingText = false;
       createOverlay();
+      updateBlurStyle(); // Update cursor
       setActiveTool('toolbar-draw-region');
     });
   }
@@ -1014,6 +1063,9 @@ function setupToolbarEventListeners() {
   if (colorPickerContainer) {
     colorPickerContainer.style.display = 'none';
   }
+
+  // Initialize status indicator
+  updateStatusIndicator();
 }
 
 // Keyboard shortcuts
@@ -1026,9 +1078,10 @@ document.addEventListener('keydown', (event) => {
     return;
   }
 
-  // ?: Show keyboard shortcuts help
-  if (event.key === '?' || (event.shiftKey && event.key === '/')) {
+  // ?: Show keyboard shortcuts help (Shift + /)
+  if ((event.shiftKey && event.key === '?') || (event.shiftKey && event.key === '/')) {
     event.preventDefault();
+    event.stopPropagation();
     showKeyboardShortcuts();
     return;
   }

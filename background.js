@@ -33,6 +33,26 @@ function toggleToolbar() {
             <circle cx="9" cy="13" r="1.5" fill="currentColor"/>
           </svg>
         </div>
+        <div id="toolbar-tabs" style="display: flex; gap: 2px; border-right: 1px solid rgba(0,0,0,0.1); padding-right: 8px; margin-right: 8px;">
+          <button class="toolbar-tab active" data-tab="select" title="Selection Tools">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M8 2L2 8L8 14" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            </svg>
+          </button>
+          <button class="toolbar-tab" data-tab="effects" title="Effects & Settings">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <circle cx="8" cy="8" r="5" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            </svg>
+          </button>
+          <button class="toolbar-tab" data-tab="file" title="Save & Export">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M3 2C2.45 2 2 2.45 2 3V13C2 13.55 2.45 14 3 14H13C13.55 14 14 13.55 14 13V5L11 2H3Z" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            </svg>
+          </button>
+        </div>
+        <div id="toolbar-content" style="display: flex; gap: 4px; align-items: center; flex: 1;">
+          <!-- Tab contents will be dynamically shown/hidden -->
+          <div class="toolbar-panel active" data-panel="select"  style="display: flex; gap: 4px; align-items: center;">
         <button id="toolbar-mode-toggle" title="Switch to Highlight Mode">🌫️</button>
         <button id="toolbar-select-element" title="Select Element (Ctrl+Shift+E)">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -152,6 +172,10 @@ function toggleToolbar() {
             <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
         </button>
+      </div>
+      <div id="toolbar-status-bar" style="padding: 8px 12px; border-top: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: space-between; font-size: 12px;">
+        <span id="toolbar-status" style="color: #6b7280; font-weight: 500;">Ready</span>
+        <span style="color: #9ca3af; font-size: 11px;">Press ? for help</span>
       </div>
     `;
     document.body.appendChild(toolbarContainer);
