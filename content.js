@@ -280,7 +280,7 @@ function updateBlurStyle() {
       height: 100vh;
       background-color: rgba(0, 0, 0, 0.3);
       z-index: ${Z_INDEX_OVERLAY};
-      pointer-events: auto;
+      pointer-events: none;
     }
     .element-highlight {
       outline: 2px solid #007acc !important;
@@ -1814,17 +1814,12 @@ function setupToolbarEventListeners() {
   // Quick select menu
   if (quickSelectBtn) {
     quickSelectBtn.addEventListener('click', async () => {
-      // Check premium access (with trial support)
-      const access = await window.LicenseManager.canUsePremiumFeature(true);
+      // Check premium access WITHOUT consuming trial (just check)
+      const access = await window.LicenseManager.canUsePremiumFeature(false);
 
       if (!access.allowed) {
         window.PremiumUI.showPremiumModal();
         return;
-      }
-
-      // Show trial reminder if using trial
-      if (access.reason === 'trial') {
-        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
       }
 
       const menu = document.createElement('div');
@@ -1866,7 +1861,21 @@ function setupToolbarEventListeners() {
         `;
         btn.addEventListener('mouseover', () => btn.style.background = 'rgba(0,0,0,0.08)');
         btn.addEventListener('mouseout', () => btn.style.background = 'rgba(0,0,0,0.02)');
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
+          // Consume trial ONLY when user actually selects an option
+          const optionAccess = await window.LicenseManager.canUsePremiumFeature(true);
+
+          if (!optionAccess.allowed) {
+            window.PremiumUI.showPremiumModal();
+            menu.remove();
+            return;
+          }
+
+          // Show trial reminder if using trial
+          if (optionAccess.reason === 'trial') {
+            showToast(`Trial: ${optionAccess.remainingUses} uses remaining`, 'info');
+          }
+
           quickSelectElements(option.selector, option.description);
           menu.remove();
         });
@@ -2084,7 +2093,11 @@ document.addEventListener('mousemove', (event) => {
   if (!isSelecting) return;
 
   const element = document.elementFromPoint(event.clientX, event.clientY);
-  if (element && !element.closest('#blur-toolbar-container')) {
+  // Exclude toolbar, overlay, and extension UI elements
+  if (element &&
+      !element.closest('#blur-toolbar-container') &&
+      element.id !== 'blur-mode-overlay' &&
+      !element.closest('.blur-preset-modal')) {
     highlightElement(element);
   }
 });
@@ -2094,7 +2107,11 @@ document.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
     const element = document.elementFromPoint(event.clientX, event.clientY);
-    if (element && !element.closest('#blur-toolbar-container')) {
+    // Exclude toolbar, overlay, and extension UI elements
+    if (element &&
+        !element.closest('#blur-toolbar-container') &&
+        element.id !== 'blur-mode-overlay' &&
+        !element.closest('.blur-preset-modal')) {
       if (element.classList.contains('blur-region') || element.classList.contains('highlight-region')) {
         // Track before removing (bug fix)
         trackBlurAction(element, element.classList.contains('blur-region') ? 'region' : 'highlight-region');
