@@ -52,7 +52,7 @@ function renderActivationView(licenseInfo) {
     ? `
       <div class="blur-trial-banner">
         <i class="bi bi-hourglass-split"></i>
-        <span>Free Trial: ${licenseInfo.trialUsesRemaining} / ${licenseInfo.maxTrialUses} uses remaining</span>
+        <span>Free Trial: ${licenseInfo.trialUsesRemaining} / ${licenseInfo.maxTrialUses} uses remaining (all premium tools)</span>
       </div>
     `
     : `

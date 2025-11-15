@@ -1688,12 +1688,42 @@ function setupToolbarEventListeners() {
 
   // Export configuration button
   if (exportBtn) {
-    exportBtn.addEventListener('click', exportConfiguration);
+    exportBtn.addEventListener('click', async () => {
+      // Check premium access (with trial support)
+      const access = await window.LicenseManager.canUsePremiumFeature(true);
+
+      if (!access.allowed) {
+        window.PremiumUI.showPremiumModal();
+        return;
+      }
+
+      // Show trial reminder if using trial
+      if (access.reason === 'trial') {
+        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+      }
+
+      exportConfiguration();
+    });
   }
 
   // Import configuration button
   if (importBtn) {
-    importBtn.addEventListener('click', importConfiguration);
+    importBtn.addEventListener('click', async () => {
+      // Check premium access (with trial support)
+      const access = await window.LicenseManager.canUsePremiumFeature(true);
+
+      if (!access.allowed) {
+        window.PremiumUI.showPremiumModal();
+        return;
+      }
+
+      // Show trial reminder if using trial
+      if (access.reason === 'trial') {
+        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+      }
+
+      importConfiguration();
+    });
   }
 
   // Blur presets manager

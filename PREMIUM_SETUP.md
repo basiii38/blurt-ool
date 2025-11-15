@@ -210,11 +210,18 @@ API_URL: 'https://your-domain.com/api/validate-license'
 
 ## Premium Features
 
-### Currently Gated:
-- ✅ **Quick Select** - Select all similar elements (images, videos, ads, etc.)
+### Currently Gated (Share 20 Free Trial Uses):
+
+All these features share the **same pool of 20 free trial uses**:
+
+- ✅ **Quick Select** - Select all similar elements (images, videos, ads, sidebars)
+- ✅ **Export Presets** - Export your blur configurations
+- ✅ **Import Presets** - Import blur configurations
+
+Each use of **any** premium feature consumes 1 trial use from the shared pool.
 
 ### Ready to Gate:
-Add premium checks to these features (see Quick Select example):
+Add premium checks to these features (see existing examples):
 
 ```javascript
 // Example: Gate unlimited undo/redo
@@ -252,8 +259,10 @@ async function addToHistory(state) {
 
 ### Trial Flow:
 
+**Example: User tries Quick Select, Export, or Import**
+
 ```
-User clicks Quick Select
+User clicks premium feature (Quick Select, Export, or Import)
   ↓
 Check: isPremium()?
   ↓ No
@@ -261,14 +270,18 @@ Check: trial uses left?
   ↓ Yes (e.g., 15 left)
 Allow feature + show toast: "Trial: 15 uses remaining"
   ↓
-Decrement counter to 14
+Decrement shared counter to 14
   ↓
-Next use shows: "Trial: 14 uses remaining"
+User clicks ANY premium feature again
+  ↓
+Shows: "Trial: 14 uses remaining"
   ↓
 ...continues until 0...
   ↓ 0 uses left
 Show premium modal: "Trial expired - Upgrade now"
 ```
+
+**Important:** All 3 premium features (Quick Select, Export, Import) share the **same 20-use counter**. Using Quick Select 10 times and Export 5 times = 15 uses consumed, leaving 5 trial uses remaining.
 
 ---
 
