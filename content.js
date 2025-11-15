@@ -2118,6 +2118,9 @@ document.addEventListener('mouseup', (event) => {
           // Show notification
           showNotification(`Text ${isHighlightMode ? 'highlighted' : 'blurred'}`);
 
+          // Wait for DOM to settle before auto-saving
+          await new Promise(resolve => requestAnimationFrame(resolve));
+
           // Auto-save if Keep Blur is enabled
           await autoSaveIfKeepBlurEnabled();
 
