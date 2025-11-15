@@ -15,7 +15,7 @@ let originalUserSelect = '';
 let toolbarVisible = true;
 let activeToolMode = null; // Track which tool is currently active
 let toolbarCompact = false; // Track toolbar compact mode
-let keepBlurEnabled = false; // Track if auto-save/load is enabled for current domain
+let keepBlurEnabled = true; // Auto-save/load is always enabled
 
 // Constants for z-index
 const Z_INDEX_MAX = 2147483647;
@@ -455,37 +455,9 @@ async function loadSavedState(showNoConfigNotification = true) {
   }
 }
 
-// Keep Blur functionality
-async function loadKeepBlurState() {
-  const domain = getCurrentDomain();
-  try {
-    const result = await chrome.storage.local.get(['keepBlurSettings']);
-    const settings = result.keepBlurSettings || {};
-    keepBlurEnabled = settings[domain] || false;
-    return keepBlurEnabled;
-  } catch (error) {
-    console.error('Error loading keep blur state:', error);
-    return false;
-  }
-}
-
-async function saveKeepBlurState(enabled) {
-  const domain = getCurrentDomain();
-  try {
-    const result = await chrome.storage.local.get(['keepBlurSettings']);
-    const settings = result.keepBlurSettings || {};
-    settings[domain] = enabled;
-    await chrome.storage.local.set({ keepBlurSettings: settings });
-    keepBlurEnabled = enabled;
-  } catch (error) {
-    console.error('Error saving keep blur state:', error);
-  }
-}
-
+// Auto-save functionality (Keep Blur is always enabled)
 async function autoSaveIfKeepBlurEnabled() {
-  if (keepBlurEnabled) {
-    await saveCurrentState(true); // Silent save - no notification
-  }
+  await saveCurrentState(true); // Silent save - no notification
 }
 
 function applySavedState(state) {
@@ -1656,35 +1628,6 @@ function setupToolbarEventListeners() {
     });
   }
 
-  // Keep Blur toggle button
-  const keepBlurBtn = document.getElementById('toolbar-keep-blur');
-  if (keepBlurBtn) {
-    // Load and set initial state
-    loadKeepBlurState().then(enabled => {
-      if (enabled) {
-        keepBlurBtn.classList.add('active');
-        keepBlurBtn.title = 'Keep blur on reload (enabled)';
-      }
-    });
-
-    keepBlurBtn.addEventListener('click', async () => {
-      keepBlurEnabled = !keepBlurEnabled;
-      await saveKeepBlurState(keepBlurEnabled);
-
-      if (keepBlurEnabled) {
-        keepBlurBtn.classList.add('active');
-        keepBlurBtn.title = 'Keep blur on reload (enabled)';
-        showNotification('Keep blur enabled - changes will auto-save');
-        // Auto-save current state when enabling
-        await saveCurrentState();
-      } else {
-        keepBlurBtn.classList.remove('active');
-        keepBlurBtn.title = 'Keep blur on reload (disabled)';
-        showNotification('Keep blur disabled');
-      }
-    });
-  }
-
   // Save configuration button
   if (saveBtn) {
     saveBtn.addEventListener('click', saveCurrentState);
@@ -2209,13 +2152,10 @@ new MutationObserver(async () => {
     blurHistory = [];
     redoHistory = [];
 
-    // Re-load Keep Blur state for new URL if enabled
-    const enabled = await loadKeepBlurState();
-    if (enabled) {
-      setTimeout(async () => {
-        await loadSavedState(false);
-      }, 500);
-    }
+    // Auto-load saved configuration for new URL (Keep Blur is always enabled)
+    setTimeout(async () => {
+      await loadSavedState(false);
+    }, 500);
   }
 }).observe(document, { subtree: true, childList: true });
 
@@ -2325,18 +2265,15 @@ window.addEventListener('message', async (event) => {
   }
 });
 
-// Initialize Keep Blur - auto-load saved configuration if enabled
+// Initialize auto-load - Keep Blur is always enabled
 // This runs when the page loads
-(async function initKeepBlur() {
+(async function initAutoLoad() {
   try {
-    const enabled = await loadKeepBlurState();
-    if (enabled) {
-      // Wait a bit for page to stabilize before auto-loading
-      setTimeout(async () => {
-        await loadSavedState(false); // Don't show "no config" notification
-      }, 500);
-    }
+    // Wait a bit for page to stabilize before auto-loading
+    setTimeout(async () => {
+      await loadSavedState(false); // Don't show "no config" notification
+    }, 500);
   } catch (error) {
-    console.error('Error initializing Keep Blur:', error);
+    console.error('Error initializing auto-load:', error);
   }
 })();
