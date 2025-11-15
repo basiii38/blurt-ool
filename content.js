@@ -15,6 +15,7 @@ let originalUserSelect = '';
 let toolbarVisible = true;
 let activeToolMode = null; // Track which tool is currently active
 let toolbarCompact = false; // Track toolbar compact mode
+let keepBlurEnabled = false; // Track if auto-save/load is enabled for current domain
 
 // Constants for z-index
 const Z_INDEX_MAX = 2147483647;
@@ -450,6 +451,39 @@ async function loadSavedState(showNoConfigNotification = true) {
   }
 }
 
+// Keep Blur functionality
+async function loadKeepBlurState() {
+  const domain = getCurrentDomain();
+  try {
+    const result = await chrome.storage.local.get(['keepBlurSettings']);
+    const settings = result.keepBlurSettings || {};
+    keepBlurEnabled = settings[domain] || false;
+    return keepBlurEnabled;
+  } catch (error) {
+    console.error('Error loading keep blur state:', error);
+    return false;
+  }
+}
+
+async function saveKeepBlurState(enabled) {
+  const domain = getCurrentDomain();
+  try {
+    const result = await chrome.storage.local.get(['keepBlurSettings']);
+    const settings = result.keepBlurSettings || {};
+    settings[domain] = enabled;
+    await chrome.storage.local.set({ keepBlurSettings: settings });
+    keepBlurEnabled = enabled;
+  } catch (error) {
+    console.error('Error saving keep blur state:', error);
+  }
+}
+
+async function autoSaveIfKeepBlurEnabled() {
+  if (keepBlurEnabled) {
+    await saveCurrentState();
+  }
+}
+
 function applySavedState(state) {
   if (!state) return;
 
@@ -763,6 +797,9 @@ function quickSelectElements(selector, description) {
   });
 
   showNotification(`${isHighlightMode ? 'Highlighted' : 'Blurred'} ${count} ${description}`);
+
+  // Auto-save if Keep Blur is enabled
+  autoSaveIfKeepBlurEnabled();
 }
 
 // ===== CUSTOM PRESETS MANAGEMENT =====
@@ -1615,6 +1652,35 @@ function setupToolbarEventListeners() {
     });
   }
 
+  // Keep Blur toggle button
+  const keepBlurBtn = document.getElementById('toolbar-keep-blur');
+  if (keepBlurBtn) {
+    // Load and set initial state
+    loadKeepBlurState().then(enabled => {
+      if (enabled) {
+        keepBlurBtn.classList.add('active');
+        keepBlurBtn.title = 'Keep blur on reload (enabled)';
+      }
+    });
+
+    keepBlurBtn.addEventListener('click', async () => {
+      keepBlurEnabled = !keepBlurEnabled;
+      await saveKeepBlurState(keepBlurEnabled);
+
+      if (keepBlurEnabled) {
+        keepBlurBtn.classList.add('active');
+        keepBlurBtn.title = 'Keep blur on reload (enabled)';
+        showNotification('Keep blur enabled - changes will auto-save');
+        // Auto-save current state when enabling
+        await saveCurrentState();
+      } else {
+        keepBlurBtn.classList.remove('active');
+        keepBlurBtn.title = 'Keep blur on reload (disabled)';
+        showNotification('Keep blur disabled');
+      }
+    });
+  }
+
   // Save configuration button
   if (saveBtn) {
     saveBtn.addEventListener('click', saveCurrentState);
@@ -2010,6 +2076,8 @@ document.addEventListener('click', (event) => {
       }
     }
     exitSelectMode();
+    // Auto-save if Keep Blur is enabled
+    autoSaveIfKeepBlurEnabled();
     return false;
   }
 }, true);
@@ -2053,6 +2121,8 @@ document.addEventListener('mouseup', (event) => {
       if (width > 0 && height > 0) {
         const actionType = region.classList.contains('highlight-region') ? 'highlight-region' : 'region';
         trackBlurAction(region, actionType);
+        // Auto-save if Keep Blur is enabled
+        autoSaveIfKeepBlurEnabled();
       } else {
         region.remove();
       }
@@ -2094,6 +2164,9 @@ document.addEventListener('mouseup', (event) => {
           // Show notification
           showNotification(`Text ${isHighlightMode ? 'highlighted' : 'blurred'}`);
 
+          // Auto-save if Keep Blur is enabled
+          autoSaveIfKeepBlurEnabled();
+
           // Exit text selection mode after successful blur
           exitTextSelectMode();
         } catch (error) {
@@ -2110,7 +2183,7 @@ updateBlurStyle();
 // Clear drawn regions on page navigation
 // This ensures drawn regions don't persist when navigating to new pages
 let lastUrl = location.href;
-new MutationObserver(() => {
+new MutationObserver(async () => {
   const currentUrl = location.href;
   if (currentUrl !== lastUrl) {
     lastUrl = currentUrl;
@@ -2131,6 +2204,14 @@ new MutationObserver(() => {
     // Reset history
     blurHistory = [];
     redoHistory = [];
+
+    // Re-load Keep Blur state for new URL if enabled
+    const enabled = await loadKeepBlurState();
+    if (enabled) {
+      setTimeout(async () => {
+        await loadSavedState(false);
+      }, 500);
+    }
   }
 }).observe(document, { subtree: true, childList: true });
 
@@ -2236,9 +2317,22 @@ window.addEventListener('message', async (event) => {
   if (event.data.type === 'SETUP_TOOLBAR') {
     setupToolbarEventListeners();
 
-    // Auto-load saved configuration for this domain (silent if no config)
-    setTimeout(async () => {
-      await loadSavedState(false);
-    }, 500);
+    // Note: Auto-load is now handled by Keep Blur initialization
   }
 });
+
+// Initialize Keep Blur - auto-load saved configuration if enabled
+// This runs when the page loads
+(async function initKeepBlur() {
+  try {
+    const enabled = await loadKeepBlurState();
+    if (enabled) {
+      // Wait a bit for page to stabilize before auto-loading
+      setTimeout(async () => {
+        await loadSavedState(false); // Don't show "no config" notification
+      }, 500);
+    }
+  } catch (error) {
+    console.error('Error initializing Keep Blur:', error);
+  }
+})();
