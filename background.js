@@ -17,15 +17,7 @@ function toggleToolbar() {
     if (overlay) overlay.remove();
     document.body.style.cursor = 'default';
   } else {
-    // Load Bootstrap Icons if not already loaded
-    if (!document.getElementById('bootstrap-icons-css')) {
-      const link = document.createElement('link');
-      link.id = 'bootstrap-icons-css';
-      link.rel = 'stylesheet';
-      link.href = 'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css';
-      document.head.appendChild(link);
-    }
-
+    // Note: Bootstrap Icons CSS is loaded in content.js
     // Create toolbar
     toolbarContainer = document.createElement('div');
     toolbarContainer.id = toolbarId;
