@@ -124,11 +124,7 @@ function toggleToolbar() {
           <i class="bi bi-star-fill"></i>
         </button>
 
-        <!-- Help and Close -->
-        <button id="toolbar-help" title="Help">
-          <i class="bi bi-question-circle"></i>
-        </button>
-
+        <!-- Close -->
         <button id="toolbar-close" title="Close">
           <i class="bi bi-x-lg"></i>
         </button>
@@ -615,16 +611,6 @@ function toggleToolbar() {
           transparent 100%
         );
         margin: 6px 10px;
-      }
-
-      #toolbar-help {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.1)) !important;
-        border-color: rgba(59, 130, 246, 0.3) !important;
-      }
-
-      #toolbar-help:hover {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.15)) !important;
-        color: #3b82f6 !important;
       }
 
       #toolbar-close {

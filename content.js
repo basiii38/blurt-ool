@@ -655,143 +655,6 @@ function showNotification(message, isError = false) {
   }, 3000);
 }
 
-// Keyboard shortcuts help modal
-function showKeyboardShortcuts() {
-  // Check if modal already exists
-  if (document.getElementById('blur-shortcuts-modal')) {
-    document.getElementById('blur-shortcuts-modal').remove();
-    return;
-  }
-
-  const modal = document.createElement('div');
-  modal.id = 'blur-shortcuts-modal';
-  modal.style.cssText = `
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: white;
-    border-radius: 12px;
-    padding: 0;
-    z-index: ${Z_INDEX_MAX};
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-    max-width: 600px;
-    width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  `;
-
-  const shortcuts = [
-    { category: 'Selection Tools', items: [
-      { key: 'Ctrl+Shift+E', desc: 'Activate element selection tool' },
-      { key: 'Click', desc: 'Select/blur element (when selection tool active)' },
-      { key: 'Esc', desc: 'Cancel current selection mode' }
-    ]},
-    { category: 'Modes & Effects', items: [
-      { key: 'Ctrl+Shift+B', desc: 'Toggle Blur/Highlight mode' }
-    ]},
-    { category: 'History', items: [
-      { key: 'Ctrl+Z', desc: 'Undo last action' },
-      { key: 'Ctrl+Shift+Z', desc: 'Redo last undone action' },
-      { key: 'Ctrl+Y', desc: 'Redo (alternative)' }
-    ]},
-    { category: 'File Operations', items: [
-      { key: 'Ctrl+S', desc: 'Save current configuration' },
-      { key: 'Ctrl+O', desc: 'Load saved configuration' },
-      { key: 'Ctrl+E', desc: 'Export configuration to file' }
-    ]},
-    { category: 'View', items: [
-      { key: 'Ctrl+Shift+H', desc: 'Toggle toolbar visibility' },
-      { key: 'Ctrl+Shift+C', desc: 'Toggle compact toolbar mode' },
-      { key: '?', desc: 'Show/hide this help (Shift+/)' }
-    ]},
-    { category: 'Quick Actions', items: [
-      { key: 'Delete', desc: 'Clear all blur/highlight effects' },
-      { key: 'Ctrl+A', desc: 'Select all images' },
-      { key: 'Ctrl+Shift+A', desc: 'Select all videos' }
-    ]}
-  ];
-
-  let content = `
-    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; border-radius: 12px 12px 0 0;">
-      <h2 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 600;">Keyboard Shortcuts</h2>
-      <p style="margin: 0; opacity: 0.9; font-size: 14px;">Master Element Blur with these shortcuts</p>
-    </div>
-    <div style="padding: 24px;">
-  `;
-
-  shortcuts.forEach(section => {
-    content += `
-      <div style="margin-bottom: 24px;">
-        <h3 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: #374151;">${section.category}</h3>
-        <div style="display: grid; gap: 8px;">
-    `;
-
-    section.items.forEach(item => {
-      content += `
-        <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #f3f4f6; border-radius: 6px;">
-          <span style="color: #6b7280; font-size: 14px;">${item.desc}</span>
-          <kbd style="background: white; padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #374151; border: 1px solid #d1d5db; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">${item.key}</kbd>
-        </div>
-      `;
-    });
-
-    content += `
-        </div>
-      </div>
-    `;
-  });
-
-  content += `
-      <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e7eb; text-align: center;">
-        <button id="close-shortcuts-modal" style="background: #667eea; color: white; border: none; padding: 10px 24px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s;">
-          Got it! (Press Esc or ?)
-        </button>
-      </div>
-    </div>
-  `;
-
-  modal.innerHTML = content;
-
-  // Add overlay
-  const overlay = document.createElement('div');
-  overlay.id = 'blur-shortcuts-overlay';
-  overlay.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: ${Z_INDEX_MAX - 1};
-    backdrop-filter: blur(4px);
-  `;
-
-  overlay.addEventListener('click', () => {
-    modal.remove();
-    overlay.remove();
-  });
-
-  document.body.appendChild(overlay);
-  document.body.appendChild(modal);
-
-  // Close button
-  const closeBtn = document.getElementById('close-shortcuts-modal');
-  if (closeBtn) {
-    closeBtn.addEventListener('click', () => {
-      modal.remove();
-      overlay.remove();
-    });
-    closeBtn.addEventListener('mouseover', () => {
-      closeBtn.style.background = '#5a67d8';
-    });
-    closeBtn.addEventListener('mouseout', () => {
-      closeBtn.style.background = '#667eea';
-    });
-  }
-}
-
 // Toggle compact toolbar mode
 function toggleCompactMode() {
   toolbarCompact = !toolbarCompact;
@@ -1721,14 +1584,6 @@ function setupToolbarEventListeners() {
     });
   }
 
-  // Help button
-  const helpBtn = document.getElementById('toolbar-help');
-  if (helpBtn) {
-    helpBtn.addEventListener('click', () => {
-      showKeyboardShortcuts();
-    });
-  }
-
   // Close button
   if (closeBtn) {
     closeBtn.addEventListener('click', () => {
@@ -1972,14 +1827,6 @@ document.addEventListener('keydown', (event) => {
   const targetInToolbar = event.target.closest('#blur-toolbar-container');
 
   if (targetIsInput && !targetInToolbar) {
-    return;
-  }
-
-  // ?: Show keyboard shortcuts help (Shift + /)
-  if ((event.shiftKey && event.key === '?') || (event.shiftKey && event.key === '/')) {
-    event.preventDefault();
-    event.stopPropagation();
-    showKeyboardShortcuts();
     return;
   }
 
