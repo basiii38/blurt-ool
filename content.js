@@ -109,7 +109,18 @@ function applyPreset(preset) {
   if (modeToggle) {
     const modeIcon = modeToggle.querySelector('#mode-icon');
     if (modeIcon) {
-      modeIcon.className = isHighlightMode ? 'bi bi-highlighter' : 'bi bi-droplet-fill';
+      // Replace SVG for mode icon
+      if (isHighlightMode) {
+        modeIcon.innerHTML = `
+          <rect x="2" y="12" width="12" height="3" rx="0.5" fill="currentColor" opacity="0.7"/>
+          <path d="M14 11L14 3L12 5L10 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        `;
+      } else {
+        modeIcon.innerHTML = `
+          <circle cx="8" cy="8" r="5" stroke="currentColor" stroke-width="1.5" fill="none"/>
+          <circle cx="8" cy="8" r="2" fill="currentColor"/>
+        `;
+      }
     }
     modeToggle.title = isHighlightMode ? 'Switch to Blur Mode' : 'Switch to Highlight Mode';
   }
@@ -1486,7 +1497,18 @@ function setupToolbarEventListeners() {
       isHighlightMode = !isHighlightMode;
       const modeIcon = modeToggle.querySelector('#mode-icon');
       if (modeIcon) {
-        modeIcon.className = isHighlightMode ? 'bi bi-highlighter' : 'bi bi-droplet-fill';
+        // Replace SVG for mode icon
+        if (isHighlightMode) {
+          modeIcon.innerHTML = `
+            <rect x="2" y="12" width="12" height="3" rx="0.5" fill="currentColor" opacity="0.7"/>
+            <path d="M14 11L14 3L12 5L10 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          `;
+        } else {
+          modeIcon.innerHTML = `
+            <circle cx="8" cy="8" r="5" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <circle cx="8" cy="8" r="2" fill="currentColor"/>
+          `;
+        }
       }
       modeToggle.title = isHighlightMode ? 'Switch to Blur Mode' : 'Switch to Highlight Mode';
       if (intensitySlider) {
