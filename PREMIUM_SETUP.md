@@ -7,7 +7,7 @@ Element Blur now includes a complete **lifetime license system** with:
 - ✅ Online + offline activation support
 - ✅ 20 free trial uses for testing
 - ✅ Beautiful premium unlock UI
-- ✅ Gumroad/LemonSqueezy integration ready
+- ✅ LemonSqueezy integration ready
 - ✅ Secure local storage
 - ✅ Auto-revalidation every 30 days
 
@@ -39,56 +39,17 @@ Use this key to test activation without a backend!
 
 ---
 
-## Production Setup (3 Options)
+## Production Setup (2 Options)
 
-### Option 1: Gumroad (Recommended - Easiest)
-
-**Why Gumroad?**
-- ✅ No coding required
-- ✅ Automatic email delivery
-- ✅ Built-in analytics
-- ✅ 10% fee (very reasonable)
-- ✅ Handles taxes
-
-**Setup Steps:**
-
-1. **Create Gumroad account**: https://gumroad.com
-
-2. **Create Product:**
-   - Name: "Element Blur Premium - Lifetime License"
-   - Price: $14.99
-   - Type: Digital Product
-   - Content: Not needed (license key sent via webhook)
-
-3. **Setup License Key Delivery:**
-
-   **Option A: Manual (Simple)**
-   - When someone buys, Gumroad emails you
-   - Generate license key: `window.LicenseManager.generateLicenseKey()`
-   - Email customer the key manually
-   - Works great for low volume!
-
-   **Option B: Automated (Recommended)**
-   - Use Gumroad's "License Keys" feature
-   - Or integrate with Zapier/webhook to auto-generate keys
-   - See "Backend Setup" below for automation
-
-4. **Update Extension:**
-   - Replace Gumroad link in `premium-ui.js`:
-     ```javascript
-     // Line 83-85
-     <a href="https://gumroad.com/l/YOUR-PRODUCT-URL" target="_blank"...>
-     ```
-
----
-
-### Option 2: LemonSqueezy (Professional)
+### Option 1: LemonSqueezy (Recommended)
 
 **Why LemonSqueezy?**
-- ✅ More control than Gumroad
-- ✅ Better for SaaS-style products
+- ✅ Built-in license key management
+- ✅ Automatic key generation
 - ✅ Lower fees (5% + payment processing)
-- ✅ Built-in license key API
+- ✅ Professional API
+- ✅ Webhook support
+- ✅ Better for scaling
 
 **Setup Steps:**
 
@@ -102,16 +63,30 @@ Use this key to test activation without a backend!
 3. **API Integration:**
    - Get API key from Settings → API
    - LemonSqueezy handles key generation
-   - Update purchase link in extension
+   - Deploy validation API (see `LEMON_SQUEEZY_SETUP.md`)
 
 4. **Webhook Setup:**
    - Webhook URL: Your backend endpoint
    - Event: `order_created`
    - Validates purchases automatically
 
+5. **Update Extension:**
+   - Replace checkout link in `premium-ui.js`:
+     ```javascript
+     // Line 107
+     <a href="https://yourstore.lemonsqueezy.com/checkout/buy/PRODUCT_ID" target="_blank"...>
+     ```
+   - Update API endpoint in `license.js`:
+     ```javascript
+     // Line 7
+     API_URL: 'https://your-api.workers.dev'
+     ```
+
+**See `LEMON_SQUEEZY_SETUP.md` for complete guide with Cloudflare Worker deployment.**
+
 ---
 
-### Option 3: Custom Backend (Full Control)
+### Option 2: Custom Backend (Full Control)
 
 **For maximum control and no fees:**
 
@@ -207,10 +182,10 @@ API_URL: 'https://your-domain.com/api/validate-license'
 
 ### Update Extension Files:
 
-1. **premium-ui.js** (line 83):
+1. **premium-ui.js** (line 107):
    ```javascript
-   // Replace with your purchase URL
-   <a href="https://gumroad.com/l/element-blur" target="_blank"
+   // Replace with your LemonSqueezy checkout URL
+   <a href="https://yourstore.lemonsqueezy.com/checkout/buy/PRODUCT_ID" target="_blank"
    ```
 
 2. **premium-ui.js** (line 610):
@@ -439,10 +414,11 @@ Not foolproof, but **good enough** for a Chrome extension. Perfect security isn'
 
 ## Next Steps
 
-1. **Choose Payment Platform:**
-   - Start with Gumroad (easiest)
-   - Move to LemonSqueezy when scaling
-   - Custom backend only if needed
+1. **Set up LemonSqueezy:**
+   - Follow `LEMON_SQUEEZY_SETUP.md` guide
+   - Deploy Cloudflare Worker (FREE)
+   - Configure product with license keys
+   - Custom backend only if you have specific needs
 
 2. **Update Extension:**
    - Replace purchase URL
@@ -467,8 +443,9 @@ Not foolproof, but **good enough** for a Chrome extension. Perfect security isn'
 
 ### Resources:
 
-- **Gumroad Docs**: https://help.gumroad.com
 - **LemonSqueezy Docs**: https://docs.lemonsqueezy.com
+- **LemonSqueezy Setup Guide**: See `LEMON_SQUEEZY_SETUP.md` in this repository
+- **Cloudflare Workers**: https://developers.cloudflare.com/workers/
 - **Chrome Extension Payments**: https://developer.chrome.com/docs/webstore/payments/
 
 ### Questions?
