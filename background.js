@@ -167,148 +167,265 @@ function toggleToolbar() {
     style.textContent = `
       @import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css');
 
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+      }
+
       #blur-toolbar-container {
         position: fixed !important;
         z-index: 2147483647 !important;
         pointer-events: auto !important;
         filter: none !important;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+        animation: slideIn 0.3s ease-out;
       }
 
       #blur-toolbar {
         position: relative;
-        background: rgba(255, 255, 255, 0.98);
-        border: 1px solid rgba(0, 0, 0, 0.1);
-        border-radius: 12px;
-        padding: 8px;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        padding: 10px;
         display: flex;
-        gap: 6px;
+        gap: 8px;
         align-items: center;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15),
-                    0 2px 8px rgba(0, 0, 0, 0.1),
-                    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(20px);
+        box-shadow:
+          0 20px 60px -15px rgba(0, 0, 0, 0.15),
+          0 10px 25px -10px rgba(0, 0, 0, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.9),
+          0 0 0 1px rgba(148, 163, 184, 0.1);
+        backdrop-filter: blur(40px) saturate(180%);
         user-select: none;
         pointer-events: auto !important;
       }
 
       #toolbar-drag-handle {
         cursor: move;
-        color: #6b7280;
-        padding: 6px 4px;
-        opacity: 0.6;
+        color: #94a3b8;
+        padding: 8px 6px;
+        opacity: 0.7;
         display: flex;
         align-items: center;
-        border-radius: 6px;
-        transition: all 0.2s;
+        border-radius: 8px;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        font-size: 14px;
       }
 
       #toolbar-drag-handle:hover {
         opacity: 1;
-        background: rgba(0, 0, 0, 0.05);
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.08));
+        color: #6366f1;
+        transform: scale(1.05);
       }
 
       #blur-toolbar button, #blur-toolbar .dropdown-toggle {
         cursor: pointer;
-        padding: 8px 10px;
+        padding: 9px 11px;
         border: none;
-        border-radius: 8px;
-        background: rgba(0, 0, 0, 0.03);
-        color: #374151;
+        border-radius: 10px;
+        background: linear-gradient(135deg, rgba(241, 245, 249, 0.8), rgba(248, 250, 252, 0.8));
+        color: #475569;
         display: flex;
         align-items: center;
-        gap: 4px;
-        transition: all 0.2s;
-        border: 1px solid rgba(0, 0, 0, 0.08);
+        gap: 5px;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(203, 213, 225, 0.4);
         font-size: 16px;
+        position: relative;
+        overflow: hidden;
+        font-weight: 500;
+      }
+
+      #blur-toolbar button::before, #blur-toolbar .dropdown-toggle::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+        opacity: 0;
+        transition: opacity 0.3s;
       }
 
       #blur-toolbar button:hover, #blur-toolbar .dropdown-toggle:hover {
-        background: rgba(102, 126, 234, 0.1);
-        border-color: rgba(102, 126, 234, 0.3);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(139, 92, 246, 0.12));
+        border-color: rgba(99, 102, 241, 0.3);
+        transform: translateY(-2px);
+        box-shadow:
+          0 8px 16px -4px rgba(99, 102, 241, 0.2),
+          0 4px 8px -2px rgba(99, 102, 241, 0.1);
+        color: #6366f1;
+      }
+
+      #blur-toolbar button:hover::before, #blur-toolbar .dropdown-toggle:hover::before {
+        opacity: 1;
       }
 
       #blur-toolbar button:active, #blur-toolbar .dropdown-toggle:active {
-        transform: translateY(0);
+        transform: translateY(0) scale(0.98);
+        box-shadow:
+          0 4px 8px -2px rgba(99, 102, 241, 0.15),
+          0 2px 4px -1px rgba(99, 102, 241, 0.08);
+      }
+
+      #blur-toolbar button i, #blur-toolbar .dropdown-toggle i {
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      #blur-toolbar button:hover i, #blur-toolbar .dropdown-toggle:hover i {
+        transform: scale(1.1);
       }
 
       .mode-btn {
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(139, 92, 246, 0.15));
-        border-color: rgba(102, 126, 234, 0.3);
-        min-width: 40px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        border-color: rgba(102, 126, 234, 0.4) !important;
+        min-width: 44px;
+        color: white !important;
+        box-shadow:
+          0 4px 12px rgba(102, 126, 234, 0.3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      }
+
+      .mode-btn::before {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05)) !important;
       }
 
       .mode-btn:hover {
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.25), rgba(139, 92, 246, 0.25));
+        background: linear-gradient(135deg, #7c8ff5 0%, #8b5bbb 100%) !important;
+        box-shadow:
+          0 8px 20px rgba(102, 126, 234, 0.4),
+          0 4px 10px rgba(102, 126, 234, 0.2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px) scale(1.02);
+      }
+
+      .mode-btn i {
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
       }
 
       .toolbar-separator {
         width: 1px;
-        height: 24px;
-        background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.15) 20%, rgba(0, 0, 0, 0.15) 80%, transparent);
-        margin: 0 2px;
+        height: 28px;
+        background: linear-gradient(
+          to bottom,
+          transparent 0%,
+          rgba(203, 213, 225, 0.4) 15%,
+          rgba(148, 163, 184, 0.5) 50%,
+          rgba(203, 213, 225, 0.4) 85%,
+          transparent 100%
+        );
+        margin: 0 4px;
+        border-radius: 1px;
       }
 
       .slider-container {
         display: flex;
         align-items: center;
-        gap: 6px;
-        padding: 4px 8px;
-        background: rgba(0, 0, 0, 0.03);
-        border-radius: 8px;
-        border: 1px solid rgba(0, 0, 0, 0.08);
+        gap: 8px;
+        padding: 6px 12px;
+        background: linear-gradient(135deg, rgba(241, 245, 249, 0.9), rgba(248, 250, 252, 0.9));
+        border-radius: 10px;
+        border: 1px solid rgba(203, 213, 225, 0.5);
+        transition: all 0.25s;
+      }
+
+      .slider-container:hover {
+        border-color: rgba(99, 102, 241, 0.3);
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(139, 92, 246, 0.05));
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
       }
 
       .slider-container i {
-        color: #6b7280;
+        color: #6366f1;
         font-size: 14px;
+        opacity: 0.8;
       }
 
       #toolbar-blur-intensity {
-        width: 80px;
-        height: 4px;
+        width: 90px;
+        height: 5px;
         appearance: none;
-        background: rgba(0, 0, 0, 0.1);
-        border-radius: 2px;
+        background: linear-gradient(to right,
+          rgba(99, 102, 241, 0.15) 0%,
+          rgba(139, 92, 246, 0.25) 100%);
+        border-radius: 10px;
         outline: none;
         cursor: pointer;
+        position: relative;
       }
 
       #toolbar-blur-intensity::-webkit-slider-thumb {
         appearance: none;
-        width: 14px;
-        height: 14px;
+        width: 16px;
+        height: 16px;
         background: linear-gradient(135deg, #667eea, #764ba2);
         border-radius: 50%;
         cursor: pointer;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        box-shadow:
+          0 3px 8px rgba(102, 126, 234, 0.4),
+          0 1px 3px rgba(102, 126, 234, 0.3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        transition: transform 0.2s;
+      }
+
+      #toolbar-blur-intensity::-webkit-slider-thumb:hover {
+        transform: scale(1.15);
+        box-shadow:
+          0 4px 12px rgba(102, 126, 234, 0.5),
+          0 2px 6px rgba(102, 126, 234, 0.4),
+          inset 0 1px 0 rgba(255, 255, 255, 0.4);
       }
 
       #toolbar-blur-intensity::-moz-range-thumb {
-        width: 14px;
-        height: 14px;
+        width: 16px;
+        height: 16px;
         background: linear-gradient(135deg, #667eea, #764ba2);
         border-radius: 50%;
         cursor: pointer;
         border: none;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        box-shadow:
+          0 3px 8px rgba(102, 126, 234, 0.4),
+          0 1px 3px rgba(102, 126, 234, 0.3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        transition: transform 0.2s;
+      }
+
+      #toolbar-blur-intensity::-moz-range-thumb:hover {
+        transform: scale(1.15);
       }
 
       .color-picker-container {
         display: flex;
-        padding: 2px;
-        background: rgba(251, 191, 36, 0.1);
-        border: 1px solid rgba(251, 191, 36, 0.3);
-        border-radius: 8px;
+        padding: 4px;
+        background: linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(245, 158, 11, 0.12));
+        border: 1px solid rgba(251, 191, 36, 0.4);
+        border-radius: 10px;
+        transition: all 0.25s;
+      }
+
+      .color-picker-container:hover {
+        box-shadow: 0 4px 12px rgba(251, 191, 36, 0.25);
+        border-color: rgba(251, 191, 36, 0.6);
       }
 
       #toolbar-color-picker {
-        width: 32px;
-        height: 28px;
+        width: 36px;
+        height: 30px;
         border: none;
-        border-radius: 6px;
+        border-radius: 7px;
         cursor: pointer;
         background: none;
       }
@@ -318,9 +435,11 @@ function toggleToolbar() {
       }
 
       #toolbar-color-picker::-webkit-color-swatch {
-        border: 2px solid rgba(255, 255, 255, 0.8);
-        border-radius: 6px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border: 2px solid rgba(255, 255, 255, 0.9);
+        border-radius: 7px;
+        box-shadow:
+          0 2px 8px rgba(0, 0, 0, 0.15),
+          inset 0 1px 0 rgba(255, 255, 255, 0.3);
       }
 
       /* Dropdown Styles */
@@ -335,36 +454,48 @@ function toggleToolbar() {
       .dropdown-arrow {
         font-size: 10px;
         margin-left: 2px;
-        transition: transform 0.2s;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        opacity: 0.7;
       }
 
       .dropdown-container.active .dropdown-arrow {
         transform: rotate(180deg);
+        opacity: 1;
+      }
+
+      .dropdown-container.active .dropdown-toggle {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15)) !important;
+        border-color: rgba(99, 102, 241, 0.4) !important;
+        color: #6366f1 !important;
       }
 
       .dropdown-menu {
         position: absolute;
-        top: calc(100% + 8px);
+        top: calc(100% + 10px);
         right: 0;
-        min-width: 200px;
-        background: white;
-        border: 1px solid rgba(0, 0, 0, 0.1);
-        border-radius: 10px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-        padding: 6px;
+        min-width: 220px;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 12px;
+        box-shadow:
+          0 20px 50px -12px rgba(0, 0, 0, 0.25),
+          0 10px 25px -8px rgba(0, 0, 0, 0.15),
+          0 0 0 1px rgba(148, 163, 184, 0.1);
+        padding: 8px;
         display: none;
         z-index: 2147483647;
-        animation: dropdownFadeIn 0.2s ease;
+        animation: dropdownFadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        backdrop-filter: blur(20px) saturate(180%);
       }
 
       @keyframes dropdownFadeIn {
         from {
           opacity: 0;
-          transform: translateY(-10px);
+          transform: translateY(-12px) scale(0.95);
         }
         to {
           opacity: 1;
-          transform: translateY(0);
+          transform: translateY(0) scale(1);
         }
       }
 
@@ -374,25 +505,27 @@ function toggleToolbar() {
 
       .dropdown-item {
         width: 100%;
-        padding: 8px 12px;
+        padding: 10px 14px;
         border: none;
         background: none;
         text-align: left;
         cursor: pointer;
-        border-radius: 6px;
+        border-radius: 8px;
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 12px;
         font-size: 14px;
-        color: #374151;
-        transition: all 0.15s;
+        color: #475569;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        font-weight: 500;
       }
 
       .dropdown-item i {
-        font-size: 16px;
-        width: 20px;
+        font-size: 17px;
+        width: 22px;
         text-align: center;
-        color: #6b7280;
+        color: #64748b;
+        transition: all 0.2s;
       }
 
       .dropdown-item span:first-of-type {
@@ -401,42 +534,81 @@ function toggleToolbar() {
 
       .shortcut {
         font-size: 11px;
-        color: #9ca3af;
-        font-family: monospace;
-        background: rgba(0, 0, 0, 0.05);
-        padding: 2px 6px;
-        border-radius: 4px;
+        color: #94a3b8;
+        font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+        background: rgba(148, 163, 184, 0.12);
+        padding: 3px 7px;
+        border-radius: 5px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
       }
 
       .dropdown-item:hover {
-        background: rgba(102, 126, 234, 0.1);
-        color: #667eea;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(139, 92, 246, 0.10));
+        color: #6366f1;
+        transform: translateX(2px);
       }
 
       .dropdown-item:hover i {
-        color: #667eea;
+        color: #6366f1;
+        transform: scale(1.1);
+      }
+
+      .dropdown-item:hover .shortcut {
+        background: rgba(99, 102, 241, 0.15);
+        color: #6366f1;
       }
 
       .dropdown-divider {
         height: 1px;
-        background: rgba(0, 0, 0, 0.08);
-        margin: 4px 8px;
+        background: linear-gradient(
+          to right,
+          transparent 0%,
+          rgba(203, 213, 225, 0.5) 15%,
+          rgba(148, 163, 184, 0.6) 50%,
+          rgba(203, 213, 225, 0.5) 85%,
+          transparent 100%
+        );
+        margin: 6px 10px;
       }
 
       #toolbar-status-bar {
-        padding: 8px 12px;
-        border-top: 1px solid rgba(0, 0, 0, 0.05);
+        padding: 10px 14px;
+        border-top: 1px solid rgba(226, 232, 240, 0.6);
         display: flex;
         align-items: center;
         justify-content: space-between;
         font-size: 12px;
-        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.01), rgba(0, 0, 0, 0.03));
-        border-radius: 0 0 12px 12px;
+        background: linear-gradient(to bottom,
+          rgba(241, 245, 249, 0.3) 0%,
+          rgba(248, 250, 252, 0.5) 100%);
+        border-radius: 0 0 16px 16px;
       }
 
       #toolbar-status {
-        color: #6b7280;
-        font-weight: 500;
+        color: #64748b;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+      }
+
+      #toolbar-help {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.1)) !important;
+        border-color: rgba(59, 130, 246, 0.3) !important;
+      }
+
+      #toolbar-help:hover {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.15)) !important;
+        color: #3b82f6 !important;
+      }
+
+      #toolbar-close {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(220, 38, 38, 0.08)) !important;
+        border-color: rgba(239, 68, 68, 0.25) !important;
+      }
+
+      #toolbar-close:hover {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.15)) !important;
+        color: #ef4444 !important;
       }
     `;
     document.head.appendChild(style);
