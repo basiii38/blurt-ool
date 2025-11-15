@@ -1,12 +1,30 @@
 # Bug Report - Element Blur Extension
 
-## Critical Bugs
+**Status: All critical and important bugs FIXED ✅**
+**Last Updated:** 2024-11-15
 
-### 🔴 Bug #1: Text Blur/Highlight Not Properly Cleared
-**Location:** `content.js:35-42` (clearAllBlurs function)
+---
+
+## Critical Bugs (FIXED ✅)
+
+### ✅ Bug #1: Text Blur/Highlight Not Properly Cleared (FIXED)
+**Location:** `content.js:35-51` (clearAllBlurs function)
 
 **Issue:**
 The `clearAllBlurs()` function only removes CSS classes from `.blur-text` and `.highlight-text` elements but doesn't unwrap the `<span>` elements. This leaves empty span wrappers in the DOM.
+
+**Fix Applied:**
+```javascript
+// Properly unwrap text blur/highlight spans
+document.querySelectorAll('.blur-text, .highlight-text').forEach(span => {
+  if (span.parentNode) {
+    while (span.firstChild) {
+      span.parentNode.insertBefore(span.firstChild, span);
+    }
+    span.remove();
+  }
+});
+```
 
 **Current Code:**
 ```javascript
@@ -30,11 +48,26 @@ span.remove();
 
 ---
 
-### 🔴 Bug #2: Text Blurs Not Saved in State
-**Location:** `content.js:274-313` (serializeBlurState function)
+### ✅ Bug #2: Text Blurs Not Saved in State (FIXED)
+**Location:** `content.js:284-342` (serializeBlurState function)
 
 **Issue:**
 The `serializeBlurState()` function saves blurred/highlighted elements and regions, but completely ignores `.blur-text` and `.highlight-text` span elements.
+
+**Fix Applied:**
+Added textBlurs and textHighlights arrays to state:
+```javascript
+// Serialize text blurs and highlights
+document.querySelectorAll('.blur-text').forEach(span => {
+  const textData = {
+    textContent: span.textContent,
+    parentSelector: getElementSelector(span.parentElement)
+  };
+  state.textBlurs.push(textData);
+});
+```
+
+Also added restoration in applySavedState() using TreeWalker to find and wrap matching text.
 
 **Current Code:**
 ```javascript
@@ -65,8 +98,8 @@ function serializeBlurState() {
 
 ---
 
-### 🟡 Bug #3: Preset Import Checks Name Instead of ID for Duplicates
-**Location:** `content.js:1294` (importPresetsFile function)
+### ✅ Bug #3: Preset Import Checks Name Instead of ID for Duplicates (FIXED)
+**Location:** `content.js:1391-1392` (importPresetsFile function)
 
 **Issue:**
 When importing presets, the duplicate check uses `preset.name` instead of `preset.id`. This can cause:
