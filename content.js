@@ -37,8 +37,18 @@ function clearAllBlurs() {
   document.querySelectorAll('.highlighted').forEach(el => el.classList.remove('highlighted'));
   document.querySelectorAll('.blur-region').forEach(el => el.remove());
   document.querySelectorAll('.highlight-region').forEach(el => el.remove());
-  document.querySelectorAll('.blur-text').forEach(el => el.classList.remove('blur-text'));
-  document.querySelectorAll('.highlight-text').forEach(el => el.classList.remove('highlight-text'));
+
+  // Properly unwrap text blur/highlight spans
+  document.querySelectorAll('.blur-text, .highlight-text').forEach(span => {
+    if (span.parentNode) {
+      // Move all child nodes before the span
+      while (span.firstChild) {
+        span.parentNode.insertBefore(span.firstChild, span);
+      }
+      // Remove the empty span
+      span.remove();
+    }
+  });
 }
 
 // Save complete blur state as a preset
@@ -47,7 +57,7 @@ async function saveAsPreset(name, description = '') {
   const domain = getCurrentDomain();
 
   const preset = {
-    id: Date.now().toString(),
+    id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     name: name.trim(),
     description: description.trim(),
     domain: domain,
@@ -69,6 +79,17 @@ async function saveAsPreset(name, description = '') {
 
 // Apply a saved preset
 function applyPreset(preset) {
+  // Validate preset structure
+  if (!preset || typeof preset !== 'object') {
+    showNotification('❌ Invalid preset data', true);
+    return;
+  }
+
+  if (!preset.settings || !preset.state) {
+    showNotification('❌ Incomplete preset data', true);
+    return;
+  }
+
   // Clear current state
   clearAllBlurs();
 
@@ -277,6 +298,8 @@ function serializeBlurState() {
     highlighted: [],
     regions: [],
     highlightRegions: [],
+    textBlurs: [],
+    textHighlights: [],
     settings: {
       blurIntensity,
       highlightColor,
@@ -309,18 +332,49 @@ function serializeBlurState() {
     }
   });
 
+  // Serialize text blurs and highlights
+  document.querySelectorAll('.blur-text').forEach(span => {
+    const textData = {
+      textContent: span.textContent,
+      parentSelector: getElementSelector(span.parentElement)
+    };
+    state.textBlurs.push(textData);
+  });
+
+  document.querySelectorAll('.highlight-text').forEach(span => {
+    const textData = {
+      textContent: span.textContent,
+      parentSelector: getElementSelector(span.parentElement)
+    };
+    state.textHighlights.push(textData);
+  });
+
   return state;
 }
 
 function getElementSelector(element) {
+  // If element has an ID, use it (most specific)
   if (element.id) return `#${element.id}`;
+
+  // Build selector with classes if available
+  let selector = element.tagName.toLowerCase();
   if (element.className && typeof element.className === 'string') {
     const classes = element.className.split(' ')
       .filter(c => c && !c.startsWith('blur') && !c.startsWith('highlight') && c !== 'element-highlight')
       .join('.');
-    if (classes) return `${element.tagName.toLowerCase()}.${classes}`;
+    if (classes) selector += `.${classes}`;
   }
-  return element.tagName.toLowerCase();
+
+  // Add nth-child for better specificity if element has parent
+  if (element.parentElement) {
+    const siblings = Array.from(element.parentElement.children);
+    const index = siblings.indexOf(element) + 1;
+    if (index > 0) {
+      selector += `:nth-child(${index})`;
+    }
+  }
+
+  return selector;
 }
 
 async function saveCurrentState() {
@@ -439,6 +493,74 @@ function applySavedState(state) {
     region.style.width = regionData.width;
     region.style.height = regionData.height;
     document.body.appendChild(region);
+  });
+
+  // Apply text blurs (best effort - may not work if page structure changed)
+  state.textBlurs?.forEach(textData => {
+    try {
+      const parents = document.querySelectorAll(textData.parentSelector);
+      parents.forEach(parent => {
+        // Find text nodes containing the blurred text
+        const walker = document.createTreeWalker(parent, NodeFilter.SHOW_TEXT, null, false);
+        let node;
+        while (node = walker.nextNode()) {
+          if (node.textContent.includes(textData.textContent)) {
+            // Found the text, wrap it in a span
+            const range = document.createRange();
+            const startIndex = node.textContent.indexOf(textData.textContent);
+            if (startIndex !== -1) {
+              try {
+                range.setStart(node, startIndex);
+                range.setEnd(node, startIndex + textData.textContent.length);
+                const span = document.createElement('span');
+                span.className = 'blur-text';
+                range.surroundContents(span);
+                break; // Found and wrapped, move to next textData
+              } catch (e) {
+                // Range might span multiple nodes, skip
+                console.warn('Could not restore text blur:', e);
+              }
+            }
+          }
+        }
+      });
+    } catch (e) {
+      console.warn('Error restoring text blur:', e);
+    }
+  });
+
+  // Apply text highlights (best effort - may not work if page structure changed)
+  state.textHighlights?.forEach(textData => {
+    try {
+      const parents = document.querySelectorAll(textData.parentSelector);
+      parents.forEach(parent => {
+        // Find text nodes containing the highlighted text
+        const walker = document.createTreeWalker(parent, NodeFilter.SHOW_TEXT, null, false);
+        let node;
+        while (node = walker.nextNode()) {
+          if (node.textContent.includes(textData.textContent)) {
+            // Found the text, wrap it in a span
+            const range = document.createRange();
+            const startIndex = node.textContent.indexOf(textData.textContent);
+            if (startIndex !== -1) {
+              try {
+                range.setStart(node, startIndex);
+                range.setEnd(node, startIndex + textData.textContent.length);
+                const span = document.createElement('span');
+                span.className = 'highlight-text';
+                range.surroundContents(span);
+                break; // Found and wrapped, move to next textData
+              } catch (e) {
+                // Range might span multiple nodes, skip
+                console.warn('Could not restore text highlight:', e);
+              }
+            }
+          }
+        }
+      });
+    } catch (e) {
+      console.warn('Error restoring text highlight:', e);
+    }
   });
 
   showNotification('Configuration loaded');
@@ -1209,10 +1331,24 @@ async function createNewPreset() {
   const name = prompt('📝 Enter preset name:\n(e.g., "Client Demo", "Privacy Mode", "Screenshot Ready")');
   if (!name || name.trim() === '') return;
 
+  const trimmedName = name.trim();
+
+  // Validate name length
+  if (trimmedName.length > 50) {
+    showNotification('❌ Preset name too long (max 50 characters)');
+    return;
+  }
+
+  // Validate name doesn't contain problematic characters
+  if (trimmedName.includes('<') || trimmedName.includes('>')) {
+    showNotification('❌ Preset name cannot contain < or >');
+    return;
+  }
+
   const description = prompt('💭 Enter description (optional):\n(e.g., "Blur sidebar and ads for clean screenshots")') || '';
 
   // Check if name already exists
-  if (customPresets.some(p => p.name === name.trim())) {
+  if (customPresets.some(p => p.name === trimmedName)) {
     showNotification('❌ Preset name already exists!');
     return;
   }
@@ -1291,7 +1427,8 @@ function importPresetsFile() {
         let skipped = 0;
 
         imported.forEach(preset => {
-          if (!customPresets.some(p => p.name === preset.name)) {
+          // Check for duplicate by ID to prevent ID collisions
+          if (!customPresets.some(p => p.id === preset.id)) {
             customPresets.push(preset);
             added++;
           } else {
@@ -1953,6 +2090,39 @@ document.addEventListener('mouseup', (event) => {
 });
 
 updateBlurStyle();
+
+// Clear drawn regions on page navigation
+// This ensures drawn regions don't persist when navigating to new pages
+let lastUrl = location.href;
+new MutationObserver(() => {
+  const currentUrl = location.href;
+  if (currentUrl !== lastUrl) {
+    lastUrl = currentUrl;
+    // URL changed (SPA navigation) - clear all blur effects including drawn regions
+    // Only clear the visual effects, not the toolbar
+    document.querySelectorAll('.blur-region, .highlight-region').forEach(el => el.remove());
+    document.querySelectorAll('.blurred').forEach(el => el.classList.remove('blurred'));
+    document.querySelectorAll('.highlighted').forEach(el => el.classList.remove('highlighted'));
+    // Unwrap text blurs
+    document.querySelectorAll('.blur-text, .highlight-text').forEach(span => {
+      if (span.parentNode) {
+        while (span.firstChild) {
+          span.parentNode.insertBefore(span.firstChild, span);
+        }
+        span.remove();
+      }
+    });
+    // Reset history
+    blurHistory = [];
+    redoHistory = [];
+  }
+}).observe(document, { subtree: true, childList: true });
+
+// Also clear on full page navigation
+window.addEventListener('beforeunload', () => {
+  // Clear drawn regions before page unloads
+  document.querySelectorAll('.blur-region, .highlight-region').forEach(el => el.remove());
+});
 
 // Listen for messages from the injected script
 window.addEventListener('message', async (event) => {
