@@ -1812,6 +1812,8 @@ function setupToolbarEventListeners() {
   }
 
   // Quick select menu
+  let quickSelectCloseListener = null;
+
   if (quickSelectBtn) {
     quickSelectBtn.addEventListener('click', async () => {
       // Check premium access WITHOUT consuming trial (just check)
@@ -1822,7 +1824,20 @@ function setupToolbarEventListeners() {
         return;
       }
 
+      // Remove existing menu if any
+      const existingMenu = document.getElementById('quick-select-menu');
+      if (existingMenu) {
+        existingMenu.remove();
+      }
+
+      // Clean up previous event listener if any
+      if (quickSelectCloseListener) {
+        document.removeEventListener('click', quickSelectCloseListener);
+        quickSelectCloseListener = null;
+      }
+
       const menu = document.createElement('div');
+      menu.id = 'quick-select-menu';
       menu.style.cssText = `
         position: absolute;
         top: 45px;
@@ -1868,6 +1883,11 @@ function setupToolbarEventListeners() {
           if (!optionAccess.allowed) {
             window.PremiumUI.showPremiumModal();
             menu.remove();
+            // Clean up listener when menu is removed
+            if (quickSelectCloseListener) {
+              document.removeEventListener('click', quickSelectCloseListener);
+              quickSelectCloseListener = null;
+            }
             return;
           }
 
@@ -1878,6 +1898,11 @@ function setupToolbarEventListeners() {
 
           quickSelectElements(option.selector, option.description);
           menu.remove();
+          // Clean up listener when menu is removed
+          if (quickSelectCloseListener) {
+            document.removeEventListener('click', quickSelectCloseListener);
+            quickSelectCloseListener = null;
+          }
         });
         menu.appendChild(btn);
       });
@@ -1885,13 +1910,15 @@ function setupToolbarEventListeners() {
       document.body.appendChild(menu);
 
       setTimeout(() => {
-        const closeMenu = (e) => {
-          if (!menu.contains(e.target) && e.target !== quickSelectBtn) {
+        quickSelectCloseListener = (e) => {
+          // Check if click is outside menu AND not on the quick select button or its children
+          if (!menu.contains(e.target) && !quickSelectBtn.contains(e.target)) {
             menu.remove();
-            document.removeEventListener('click', closeMenu);
+            document.removeEventListener('click', quickSelectCloseListener);
+            quickSelectCloseListener = null;
           }
         };
-        document.addEventListener('click', closeMenu);
+        document.addEventListener('click', quickSelectCloseListener);
       }, 100);
     });
   }
