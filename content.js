@@ -1514,7 +1514,20 @@ function setupToolbarEventListeners() {
 
   // Select element button
   if (selectBtn) {
-    selectBtn.addEventListener('click', () => {
+    selectBtn.addEventListener('click', async () => {
+      // Check premium access (with trial support)
+      const access = await window.LicenseManager.canUsePremiumFeature(true);
+
+      if (!access.allowed) {
+        window.PremiumUI.showPremiumModal();
+        return;
+      }
+
+      // Show trial reminder if using trial
+      if (access.reason === 'trial') {
+        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+      }
+
       isSelecting = true;
       isDrawing = false;
       isSelectingText = false;
@@ -1526,7 +1539,20 @@ function setupToolbarEventListeners() {
   // Select text button
   const selectTextBtn = document.getElementById('toolbar-select-text');
   if (selectTextBtn) {
-    selectTextBtn.addEventListener('click', () => {
+    selectTextBtn.addEventListener('click', async () => {
+      // Check premium access (with trial support)
+      const access = await window.LicenseManager.canUsePremiumFeature(true);
+
+      if (!access.allowed) {
+        window.PremiumUI.showPremiumModal();
+        return;
+      }
+
+      // Show trial reminder if using trial
+      if (access.reason === 'trial') {
+        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+      }
+
       isSelectingText = true;
       isSelecting = false;
       isDrawing = false;
@@ -1539,7 +1565,20 @@ function setupToolbarEventListeners() {
 
   // Undo button with DOM existence check
   if (undoBtn) {
-    undoBtn.addEventListener('click', () => {
+    undoBtn.addEventListener('click', async () => {
+      // Check premium access (with trial support)
+      const access = await window.LicenseManager.canUsePremiumFeature(true);
+
+      if (!access.allowed) {
+        window.PremiumUI.showPremiumModal();
+        return;
+      }
+
+      // Show trial reminder if using trial
+      if (access.reason === 'trial') {
+        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+      }
+
       while (blurHistory.length > 0) {
         const last = blurHistory.pop();
         if (!last || !last.element) continue;
@@ -1578,7 +1617,20 @@ function setupToolbarEventListeners() {
 
   // Redo button
   if (redoBtn) {
-    redoBtn.addEventListener('click', () => {
+    redoBtn.addEventListener('click', async () => {
+      // Check premium access (with trial support)
+      const access = await window.LicenseManager.canUsePremiumFeature(true);
+
+      if (!access.allowed) {
+        window.PremiumUI.showPremiumModal();
+        return;
+      }
+
+      // Show trial reminder if using trial
+      if (access.reason === 'trial') {
+        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+      }
+
       if (redoHistory.length > 0) {
         const action = redoHistory.pop();
         if (!action || !action.element) return;
@@ -1599,7 +1651,20 @@ function setupToolbarEventListeners() {
 
   // Draw region button
   if (drawBtn) {
-    drawBtn.addEventListener('click', () => {
+    drawBtn.addEventListener('click', async () => {
+      // Check premium access (with trial support)
+      const access = await window.LicenseManager.canUsePremiumFeature(true);
+
+      if (!access.allowed) {
+        window.PremiumUI.showPremiumModal();
+        return;
+      }
+
+      // Show trial reminder if using trial
+      if (access.reason === 'trial') {
+        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+      }
+
       isDrawing = true;
       isSelecting = false;
       isSelectingText = false;
@@ -1728,7 +1793,22 @@ function setupToolbarEventListeners() {
 
   // Blur presets manager
   if (presetsBtn) {
-    presetsBtn.addEventListener('click', showPresetsManager);
+    presetsBtn.addEventListener('click', async () => {
+      // Check premium access (with trial support)
+      const access = await window.LicenseManager.canUsePremiumFeature(true);
+
+      if (!access.allowed) {
+        window.PremiumUI.showPremiumModal();
+        return;
+      }
+
+      // Show trial reminder if using trial
+      if (access.reason === 'trial') {
+        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+      }
+
+      showPresetsManager();
+    });
   }
 
   // Quick select menu

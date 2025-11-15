@@ -214,36 +214,46 @@ API_URL: 'https://your-domain.com/api/validate-license'
 
 All these features share the **same pool of 20 free trial uses**:
 
+- ✅ **Select Element** - Click and select elements to blur
+- ✅ **Draw Region** - Draw custom regions to blur
+- ✅ **Select Text** - Select and blur text content
 - ✅ **Quick Select** - Select all similar elements (images, videos, ads, sidebars)
-- ✅ **Export Presets** - Export your blur configurations
-- ✅ **Import Presets** - Import blur configurations
+- ✅ **Undo/Redo** - Unlimited undo and redo history
+- ✅ **Presets Manager** - Save and manage blur presets
+- ✅ **Import/Export** - Import and export your blur configurations
 
 Each use of **any** premium feature consumes 1 trial use from the shared pool.
 
-### Ready to Gate:
-Add premium checks to these features (see existing examples):
+### Implementation Pattern:
+
+All gated features use this pattern:
 
 ```javascript
-// Example: Gate unlimited undo/redo
-async function addToHistory(state) {
-  const isPrem = await window.LicenseManager.isPremium();
+// Example: Select Element button
+selectBtn.addEventListener('click', async () => {
+  // Check premium access (with trial support)
+  const access = await window.LicenseManager.canUsePremiumFeature(true);
 
-  if (!isPrem && blurHistory.length >= 5) {
-    showToast('Upgrade to Premium for unlimited undo history', 'warning');
+  if (!access.allowed) {
     window.PremiumUI.showPremiumModal();
     return;
   }
 
-  blurHistory.push(state);
-}
+  // Show trial reminder if using trial
+  if (access.reason === 'trial') {
+    showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+  }
+
+  // Execute feature code here
+  isSelecting = true;
+  updateBlurStyle();
+});
 ```
 
-**Features to gate:**
-- Unlimited undo/redo (free: 5 actions)
-- Unlimited presets (free: 3 presets)
-- Import/Export presets
+**Future Features to Gate:**
 - Cloud sync (future feature)
 - Batch operations (future feature)
+- Advanced blur effects (future feature)
 
 ---
 
@@ -259,10 +269,10 @@ async function addToHistory(state) {
 
 ### Trial Flow:
 
-**Example: User tries Quick Select, Export, or Import**
+**Example: User tries any premium tool**
 
 ```
-User clicks premium feature (Quick Select, Export, or Import)
+User clicks premium tool (Select Element, Draw Region, Select Text, Quick Select, Undo, Redo, or Presets)
   ↓
 Check: isPremium()?
   ↓ No
@@ -272,7 +282,7 @@ Allow feature + show toast: "Trial: 15 uses remaining"
   ↓
 Decrement shared counter to 14
   ↓
-User clicks ANY premium feature again
+User clicks ANY premium tool again
   ↓
 Shows: "Trial: 14 uses remaining"
   ↓
@@ -281,7 +291,7 @@ Shows: "Trial: 14 uses remaining"
 Show premium modal: "Trial expired - Upgrade now"
 ```
 
-**Important:** All 3 premium features (Quick Select, Export, Import) share the **same 20-use counter**. Using Quick Select 10 times and Export 5 times = 15 uses consumed, leaving 5 trial uses remaining.
+**Important:** All 7 premium tools (Select Element, Draw Region, Select Text, Quick Select, Undo, Redo, Presets/Import/Export) share the **same 20-use counter**. Using Select Element 5 times + Quick Select 10 times + Export 3 times = 18 uses consumed, leaving 2 trial uses remaining.
 
 ---
 
@@ -289,14 +299,20 @@ Show premium modal: "Trial expired - Upgrade now"
 
 ### Test Checklist:
 
-- [ ] Trial system (20 uses countdown)
+- [ ] Trial system (20 uses countdown across all tools)
+- [ ] Select Element tool gated properly
+- [ ] Draw Region tool gated properly
+- [ ] Select Text tool gated properly
+- [ ] Quick Select tool gated properly
+- [ ] Undo button gated properly
+- [ ] Redo button gated properly
+- [ ] Presets manager gated properly
 - [ ] License key validation (format check)
 - [ ] Offline activation (no internet)
 - [ ] Premium modal opens
 - [ ] License activation works
 - [ ] Premium button shows green when active
-- [ ] Quick Select gated properly
-- [ ] Toast notifications appear
+- [ ] Toast notifications show remaining uses
 - [ ] License deactivation works
 - [ ] Premium status persists after reload
 
