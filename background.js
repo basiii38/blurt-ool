@@ -82,10 +82,6 @@ function toggleToolbar() {
           <i class="bi bi-trash"></i>
         </button>
 
-        <button id="toolbar-screenshot" title="Screenshot">
-          <i class="bi bi-camera"></i>
-        </button>
-
         <div class="toolbar-separator"></div>
 
         <!-- Manage Dropdown (Keep for file operations) -->
@@ -120,6 +116,13 @@ function toggleToolbar() {
             </button>
           </div>
         </div>
+
+        <div class="toolbar-separator"></div>
+
+        <!-- Premium Button -->
+        <button id="toolbar-premium" title="Premium Features" class="premium-btn">
+          <i class="bi bi-star-fill"></i>
+        </button>
 
         <!-- Help and Close -->
         <button id="toolbar-help" title="Help">
@@ -303,6 +306,60 @@ function toggleToolbar() {
         box-shadow:
           0 6px 12px -4px rgba(239, 68, 68, 0.3),
           0 3px 6px -2px rgba(239, 68, 68, 0.2) !important;
+      }
+
+      .premium-btn {
+        background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+        border-color: rgba(245, 158, 11, 0.4) !important;
+        color: white !important;
+        box-shadow:
+          0 3px 9px rgba(245, 158, 11, 0.3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        animation: premiumPulse 2s ease-in-out infinite;
+      }
+
+      @keyframes premiumPulse {
+        0%, 100% {
+          box-shadow:
+            0 3px 9px rgba(245, 158, 11, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+        50% {
+          box-shadow:
+            0 3px 9px rgba(245, 158, 11, 0.5),
+            0 0 0 3px rgba(245, 158, 11, 0.2),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+      }
+
+      .premium-btn::before {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05)) !important;
+      }
+
+      .premium-btn:hover {
+        background: linear-gradient(135deg, #fbbf24, #f59e0b) !important;
+        box-shadow:
+          0 8px 20px rgba(245, 158, 11, 0.4),
+          0 4px 10px rgba(245, 158, 11, 0.2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px) scale(1.02);
+        animation: none;
+      }
+
+      .premium-btn i {
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+      }
+
+      .premium-btn.premium-active {
+        background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(22, 163, 74, 0.15)) !important;
+        border-color: rgba(34, 197, 94, 0.4) !important;
+        color: #16a34a !important;
+        animation: none;
+      }
+
+      .premium-btn.premium-active:hover {
+        background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.2)) !important;
+        color: #15803d !important;
       }
 
       .toolbar-separator {
@@ -621,15 +678,3 @@ function toggleToolbar() {
     window.postMessage({ type: 'SETUP_TOOLBAR' }, '*');
   }
 }
-
-// Screenshot functionality
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'toolbar-screenshot') {
-    chrome.tabs.captureVisibleTab(null, { format: 'png' }, (dataUrl) => {
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = `blur-screenshot-${Date.now()}.png`;
-      link.click();
-    });
-  }
-});

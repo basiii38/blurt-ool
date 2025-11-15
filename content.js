@@ -1468,7 +1468,6 @@ function setupToolbarEventListeners() {
   const undoBtn = document.getElementById('toolbar-undo');
   const redoBtn = document.getElementById('toolbar-redo');
   const intensitySlider = document.getElementById('toolbar-blur-intensity');
-  const screenshotBtn = document.getElementById('toolbar-screenshot');
   const closeBtn = document.getElementById('toolbar-close');
   const dragHandle = document.getElementById('toolbar-drag-handle');
   const toolbar = document.getElementById('blur-toolbar');
@@ -1640,29 +1639,21 @@ function setupToolbarEventListeners() {
     });
   }
 
-  // Screenshot button with improved timing
-  if (screenshotBtn) {
-    screenshotBtn.addEventListener('click', async () => {
-      const toolbar = document.getElementById('blur-toolbar-container');
-      const overlay = document.getElementById('blur-mode-overlay');
-
-      if (toolbar) toolbar.style.display = 'none';
-      if (overlay) overlay.style.display = 'none';
-
-      // Use requestAnimationFrame for better timing
-      await new Promise(resolve => requestAnimationFrame(resolve));
-      await new Promise(resolve => requestAnimationFrame(resolve));
-
-      try {
-        await chrome.runtime.sendMessage({ action: 'toolbar-screenshot' });
-      } catch (error) {
-        console.error('Screenshot error:', error);
+  // Premium button
+  const premiumBtn = document.getElementById('toolbar-premium');
+  if (premiumBtn) {
+    // Check premium status and update button
+    window.LicenseManager.isPremium().then(isPrem => {
+      if (isPrem) {
+        premiumBtn.classList.add('premium-active');
+        premiumBtn.title = 'Premium Active - Manage License';
+      } else {
+        premiumBtn.title = 'Upgrade to Premium';
       }
+    });
 
-      // Restore UI
-      await new Promise(resolve => setTimeout(resolve, 500));
-      if (toolbar) toolbar.style.display = 'block';
-      if (overlay) overlay.style.display = 'block';
+    premiumBtn.addEventListener('click', () => {
+      window.PremiumUI.showPremiumModal();
     });
   }
 
@@ -1712,7 +1703,20 @@ function setupToolbarEventListeners() {
 
   // Quick select menu
   if (quickSelectBtn) {
-    quickSelectBtn.addEventListener('click', () => {
+    quickSelectBtn.addEventListener('click', async () => {
+      // Check premium access (with trial support)
+      const access = await window.LicenseManager.canUsePremiumFeature(true);
+
+      if (!access.allowed) {
+        window.PremiumUI.showPremiumModal();
+        return;
+      }
+
+      // Show trial reminder if using trial
+      if (access.reason === 'trial') {
+        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+      }
+
       const menu = document.createElement('div');
       menu.style.cssText = `
         position: absolute;
@@ -2129,6 +2133,96 @@ window.addEventListener('beforeunload', () => {
   // Clear drawn regions before page unloads
   document.querySelectorAll('.blur-region, .highlight-region').forEach(el => el.remove());
 });
+
+/**
+ * Show toast notification
+ * @param {string} message
+ * @param {string} type - 'info', 'success', 'error', 'warning'
+ * @param {number} duration - milliseconds
+ */
+function showToast(message, type = 'info', duration = 3000) {
+  const toast = document.createElement('div');
+  toast.className = `blur-toast blur-toast-${type}`;
+
+  const icons = {
+    info: 'bi-info-circle-fill',
+    success: 'bi-check-circle-fill',
+    error: 'bi-x-circle-fill',
+    warning: 'bi-exclamation-triangle-fill'
+  };
+
+  toast.innerHTML = `
+    <i class="bi ${icons[type]}"></i>
+    <span>${message}</span>
+  `;
+
+  // Add styles
+  const style = document.createElement('style');
+  style.textContent = `
+    .blur-toast {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      border-radius: 12px;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      z-index: ${Z_INDEX_MAX - 1};
+      animation: slideInRight 0.3s ease-out;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    @keyframes slideInRight {
+      from {
+        opacity: 0;
+        transform: translateX(100px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .blur-toast i {
+      font-size: 18px;
+    }
+
+    .blur-toast-info {
+      color: #2563eb;
+      border-left: 4px solid #2563eb;
+    }
+
+    .blur-toast-success {
+      color: #16a34a;
+      border-left: 4px solid #16a34a;
+    }
+
+    .blur-toast-error {
+      color: #dc2626;
+      border-left: 4px solid #dc2626;
+    }
+
+    .blur-toast-warning {
+      color: #d97706;
+      border-left: 4px solid #d97706;
+    }
+  `;
+
+  toast.appendChild(style);
+  document.body.appendChild(toast);
+
+  // Auto remove
+  setTimeout(() => {
+    toast.style.animation = 'slideInRight 0.3s ease-out reverse';
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
 
 // Listen for messages from the injected script
 window.addEventListener('message', async (event) => {
