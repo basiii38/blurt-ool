@@ -4,10 +4,11 @@
 
 ✅ **Built-in license key management**
 ✅ **Automatic key generation**
-✅ **Lower fees (5% vs Gumroad's 10%)**
+✅ **Low fees (5% + payment processing)**
 ✅ **Professional API**
 ✅ **Webhook support**
-✅ **Better for scaling**
+✅ **Perfect for scaling**
+✅ **Handles taxes automatically**
 
 ---
 
@@ -92,7 +93,7 @@ eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9...
 
 ### 5.1 Update `premium-ui.js`
 
-Replace the Gumroad URL with your LemonSqueezy checkout:
+Update the checkout URL with your LemonSqueezy product:
 
 ```javascript
 // Line 83-85 in premium-ui.js
