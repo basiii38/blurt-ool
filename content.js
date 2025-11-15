@@ -167,6 +167,16 @@ function exitSelectMode() {
   setActiveTool(null); // Clear active tool state
 }
 
+function exitTextSelectMode() {
+  if (originalUserSelect !== '') {
+    document.body.style.userSelect = originalUserSelect;
+    originalUserSelect = '';
+  }
+  isSelectingText = false;
+  updateBlurStyle(); // Update cursor
+  setActiveTool(null); // Clear active tool state
+}
+
 function highlightElement(element) {
   if (lastHighlightedElement) {
     lastHighlightedElement.classList.remove('element-highlight');
@@ -1804,8 +1814,10 @@ document.addEventListener('keydown', (event) => {
     // Cancel selection modes
     if (isSelecting) {
       exitSelectMode();
-    } else if (isDrawing || isSelectingText) {
+    } else if (isDrawing) {
       removeOverlay();
+    } else if (isSelectingText) {
+      exitTextSelectMode();
     }
   }
 });
@@ -1900,32 +1912,43 @@ document.addEventListener('mouseup', (event) => {
 // Text selection handler
 document.addEventListener('mouseup', (event) => {
   if (isSelectingText) {
-    const selection = window.getSelection();
-    if (selection.rangeCount > 0 && !selection.isCollapsed) {
-      const range = selection.getRangeAt(0);
+    // Small delay to allow selection to complete
+    setTimeout(() => {
+      const selection = window.getSelection();
+      if (selection.rangeCount > 0 && !selection.isCollapsed) {
+        const range = selection.getRangeAt(0);
 
-      const span = document.createElement('span');
-      span.className = isHighlightMode ? 'highlight-text' : 'blur-text';
-
-      try {
-        const contents = range.extractContents();
-        span.appendChild(contents);
-        range.insertNode(span);
-
-        const actionType = isHighlightMode ? 'text-highlight' : 'text-blur';
-        trackBlurAction(span, actionType);
-
-        selection.removeAllRanges();
-        isSelectingText = false;
-        document.body.style.cursor = 'default';
-        if (originalUserSelect !== '') {
-          document.body.style.userSelect = originalUserSelect;
-          originalUserSelect = '';
+        // Don't process if selection is in toolbar
+        const container = range.commonAncestorContainer;
+        const element = container.nodeType === 3 ? container.parentNode : container;
+        if (element.closest('#blur-toolbar-container')) {
+          return;
         }
-      } catch (error) {
-        console.warn('Could not blur selected text:', error);
+
+        const span = document.createElement('span');
+        span.className = isHighlightMode ? 'highlight-text' : 'blur-text';
+
+        try {
+          const contents = range.extractContents();
+          span.appendChild(contents);
+          range.insertNode(span);
+
+          const actionType = isHighlightMode ? 'text-highlight' : 'text-blur';
+          trackBlurAction(span, actionType);
+
+          selection.removeAllRanges();
+
+          // Show notification
+          showNotification(`Text ${isHighlightMode ? 'highlighted' : 'blurred'}`);
+
+          // Exit text selection mode after successful blur
+          exitTextSelectMode();
+        } catch (error) {
+          console.warn('Could not blur selected text:', error);
+          showNotification('Could not blur selected text', true);
+        }
       }
-    }
+    }, 10);
   }
 });
 
