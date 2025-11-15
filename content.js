@@ -258,8 +258,8 @@ function updateBlurStyle() {
     }
     .highlight-text {
       background-color: ${highlightColor} !important;
-      opacity: ${highlightOpacity} !important;
       border-radius: 2px !important;
+      padding: 2px 0 !important;
     }
     #blur-toolbar-container {
       position: fixed !important;

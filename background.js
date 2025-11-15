@@ -39,74 +39,56 @@ function toggleToolbar() {
         <!-- Blur Intensity Slider -->
         <div class="slider-container">
           <i class="bi bi-circle"></i>
-          <input type="range" id="toolbar-blur-intensity" min="0" max="100" value="8" title="Blur Intensity (0-100px)">
+          <input type="range" id="toolbar-blur-intensity" min="0" max="100" value="8" title="Blur Intensity">
         </div>
 
-        <!-- Color Picker (hidden by default, shown in highlight mode) -->
+        <!-- Color Picker -->
         <div class="color-picker-container" style="display: none;">
           <input type="color" id="toolbar-color-picker" value="#FFFF00" title="Highlight Color">
         </div>
 
         <div class="toolbar-separator"></div>
 
-        <!-- Tools Dropdown -->
-        <div class="dropdown-container">
-          <button class="dropdown-toggle" id="tools-dropdown" title="Tools">
-            <i class="bi bi-tools"></i>
-            <i class="bi bi-chevron-down dropdown-arrow"></i>
-          </button>
-          <div class="dropdown-menu" id="tools-menu">
-            <button class="dropdown-item" id="toolbar-select-element">
-              <i class="bi bi-cursor"></i>
-              <span>Select Element</span>
-              <span class="shortcut">Ctrl+Shift+E</span>
-            </button>
-            <button class="dropdown-item" id="toolbar-draw-region">
-              <i class="bi bi-bounding-box"></i>
-              <span>Draw Region</span>
-            </button>
-            <button class="dropdown-item" id="toolbar-select-text">
-              <i class="bi bi-fonts"></i>
-              <span>Select Text</span>
-            </button>
-            <button class="dropdown-item" id="toolbar-quick-select">
-              <i class="bi bi-grid-3x3-gap"></i>
-              <span>Quick Select</span>
-            </button>
-          </div>
-        </div>
+        <!-- Tool Buttons (Flattened) -->
+        <button id="toolbar-select-element" title="Select Element (Ctrl+Shift+E)">
+          <i class="bi bi-cursor"></i>
+        </button>
 
-        <!-- Actions Dropdown -->
-        <div class="dropdown-container">
-          <button class="dropdown-toggle" id="actions-dropdown" title="Actions">
-            <i class="bi bi-lightning-fill"></i>
-            <i class="bi bi-chevron-down dropdown-arrow"></i>
-          </button>
-          <div class="dropdown-menu" id="actions-menu">
-            <button class="dropdown-item" id="toolbar-undo">
-              <i class="bi bi-arrow-counterclockwise"></i>
-              <span>Undo</span>
-              <span class="shortcut">Ctrl+Z</span>
-            </button>
-            <button class="dropdown-item" id="toolbar-redo">
-              <i class="bi bi-arrow-clockwise"></i>
-              <span>Redo</span>
-              <span class="shortcut">Ctrl+Y</span>
-            </button>
-            <div class="dropdown-divider"></div>
-            <button class="dropdown-item" id="toolbar-clear-all">
-              <i class="bi bi-trash"></i>
-              <span>Clear All</span>
-              <span class="shortcut">Delete</span>
-            </button>
-            <button class="dropdown-item" id="toolbar-screenshot">
-              <i class="bi bi-camera"></i>
-              <span>Screenshot</span>
-            </button>
-          </div>
-        </div>
+        <button id="toolbar-draw-region" title="Draw Region">
+          <i class="bi bi-bounding-box"></i>
+        </button>
 
-        <!-- Manage Dropdown -->
+        <button id="toolbar-select-text" title="Select Text">
+          <i class="bi bi-fonts"></i>
+        </button>
+
+        <button id="toolbar-quick-select" title="Quick Select">
+          <i class="bi bi-grid-3x3-gap"></i>
+        </button>
+
+        <div class="toolbar-separator"></div>
+
+        <!-- Action Buttons (Flattened) -->
+        <button id="toolbar-undo" title="Undo (Ctrl+Z)">
+          <i class="bi bi-arrow-counterclockwise"></i>
+        </button>
+
+        <button id="toolbar-redo" title="Redo (Ctrl+Y)">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+
+        <!-- Clear All - Prominent -->
+        <button id="toolbar-clear-all" title="Clear All (Delete)" class="clear-btn">
+          <i class="bi bi-trash"></i>
+        </button>
+
+        <button id="toolbar-screenshot" title="Screenshot">
+          <i class="bi bi-camera"></i>
+        </button>
+
+        <div class="toolbar-separator"></div>
+
+        <!-- Manage Dropdown (Keep for file operations) -->
         <div class="dropdown-container">
           <button class="dropdown-toggle" id="manage-dropdown" title="Manage">
             <i class="bi bi-folder"></i>
@@ -126,13 +108,11 @@ function toggleToolbar() {
             <button class="dropdown-item" id="toolbar-load">
               <i class="bi bi-folder2-open"></i>
               <span>Load</span>
-              <span class="shortcut">Ctrl+O</span>
             </button>
             <div class="dropdown-divider"></div>
             <button class="dropdown-item" id="toolbar-export">
               <i class="bi bi-download"></i>
               <span>Export</span>
-              <span class="shortcut">Ctrl+E</span>
             </button>
             <button class="dropdown-item" id="toolbar-import">
               <i class="bi bi-upload"></i>
@@ -141,23 +121,14 @@ function toggleToolbar() {
           </div>
         </div>
 
-        <div class="toolbar-separator"></div>
-
-        <!-- Help Button -->
-        <button id="toolbar-help" title="Help (?)">
+        <!-- Help and Close -->
+        <button id="toolbar-help" title="Help">
           <i class="bi bi-question-circle"></i>
         </button>
 
-        <!-- Close Button -->
         <button id="toolbar-close" title="Close">
           <i class="bi bi-x-lg"></i>
         </button>
-      </div>
-
-      <!-- Status Bar -->
-      <div id="toolbar-status-bar">
-        <span id="toolbar-status">Ready</span>
-        <span style="color: #9ca3af; font-size: 11px;">Press ? for help</span>
       </div>
     `;
     document.body.appendChild(toolbarContainer);
@@ -196,16 +167,15 @@ function toggleToolbar() {
         position: relative;
         background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%);
         border: 1px solid rgba(226, 232, 240, 0.8);
-        border-radius: 16px;
-        padding: 10px;
+        border-radius: 12px;
+        padding: 6px;
         display: flex;
-        gap: 8px;
+        gap: 4px;
         align-items: center;
         box-shadow:
-          0 20px 60px -15px rgba(0, 0, 0, 0.15),
-          0 10px 25px -10px rgba(0, 0, 0, 0.1),
-          inset 0 1px 0 rgba(255, 255, 255, 0.9),
-          0 0 0 1px rgba(148, 163, 184, 0.1);
+          0 10px 30px -10px rgba(0, 0, 0, 0.15),
+          0 5px 15px -5px rgba(0, 0, 0, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.9);
         backdrop-filter: blur(40px) saturate(180%);
         user-select: none;
         pointer-events: auto !important;
@@ -214,13 +184,13 @@ function toggleToolbar() {
       #toolbar-drag-handle {
         cursor: move;
         color: #94a3b8;
-        padding: 8px 6px;
+        padding: 6px 4px;
         opacity: 0.7;
         display: flex;
         align-items: center;
-        border-radius: 8px;
+        border-radius: 6px;
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        font-size: 14px;
+        font-size: 12px;
       }
 
       #toolbar-drag-handle:hover {
@@ -232,17 +202,17 @@ function toggleToolbar() {
 
       #blur-toolbar button, #blur-toolbar .dropdown-toggle {
         cursor: pointer;
-        padding: 9px 11px;
+        padding: 6px 8px;
         border: none;
-        border-radius: 10px;
+        border-radius: 8px;
         background: linear-gradient(135deg, rgba(241, 245, 249, 0.8), rgba(248, 250, 252, 0.8));
         color: #475569;
         display: flex;
         align-items: center;
-        gap: 5px;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        gap: 4px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         border: 1px solid rgba(203, 213, 225, 0.4);
-        font-size: 16px;
+        font-size: 14px;
         position: relative;
         overflow: hidden;
         font-weight: 500;
@@ -292,10 +262,10 @@ function toggleToolbar() {
       .mode-btn {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
         border-color: rgba(102, 126, 234, 0.4) !important;
-        min-width: 44px;
+        min-width: 36px;
         color: white !important;
         box-shadow:
-          0 4px 12px rgba(102, 126, 234, 0.3),
+          0 3px 9px rgba(102, 126, 234, 0.3),
           inset 0 1px 0 rgba(255, 255, 255, 0.2);
       }
 
@@ -316,9 +286,28 @@ function toggleToolbar() {
         filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
       }
 
+      .clear-btn {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1)) !important;
+        border-color: rgba(239, 68, 68, 0.3) !important;
+        color: #dc2626 !important;
+      }
+
+      .clear-btn::before {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.15)) !important;
+      }
+
+      .clear-btn:hover {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.15)) !important;
+        border-color: rgba(239, 68, 68, 0.5) !important;
+        color: #ef4444 !important;
+        box-shadow:
+          0 6px 12px -4px rgba(239, 68, 68, 0.3),
+          0 3px 6px -2px rgba(239, 68, 68, 0.2) !important;
+      }
+
       .toolbar-separator {
         width: 1px;
-        height: 28px;
+        height: 22px;
         background: linear-gradient(
           to bottom,
           transparent 0%,
@@ -327,41 +316,41 @@ function toggleToolbar() {
           rgba(203, 213, 225, 0.4) 85%,
           transparent 100%
         );
-        margin: 0 4px;
+        margin: 0 3px;
         border-radius: 1px;
       }
 
       .slider-container {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 6px 12px;
+        gap: 5px;
+        padding: 4px 8px;
         background: linear-gradient(135deg, rgba(241, 245, 249, 0.9), rgba(248, 250, 252, 0.9));
-        border-radius: 10px;
+        border-radius: 8px;
         border: 1px solid rgba(203, 213, 225, 0.5);
-        transition: all 0.25s;
+        transition: all 0.2s;
       }
 
       .slider-container:hover {
         border-color: rgba(99, 102, 241, 0.3);
         background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(139, 92, 246, 0.05));
-        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+        box-shadow: 0 3px 8px rgba(99, 102, 241, 0.1);
       }
 
       .slider-container i {
         color: #6366f1;
-        font-size: 14px;
+        font-size: 12px;
         opacity: 0.8;
       }
 
       #toolbar-blur-intensity {
-        width: 90px;
-        height: 5px;
+        width: 70px;
+        height: 4px;
         appearance: none;
         background: linear-gradient(to right,
           rgba(99, 102, 241, 0.15) 0%,
           rgba(139, 92, 246, 0.25) 100%);
-        border-radius: 10px;
+        border-radius: 8px;
         outline: none;
         cursor: pointer;
         position: relative;
@@ -369,63 +358,63 @@ function toggleToolbar() {
 
       #toolbar-blur-intensity::-webkit-slider-thumb {
         appearance: none;
-        width: 16px;
-        height: 16px;
+        width: 14px;
+        height: 14px;
         background: linear-gradient(135deg, #667eea, #764ba2);
         border-radius: 50%;
         cursor: pointer;
         box-shadow:
-          0 3px 8px rgba(102, 126, 234, 0.4),
+          0 2px 6px rgba(102, 126, 234, 0.4),
           0 1px 3px rgba(102, 126, 234, 0.3),
           inset 0 1px 0 rgba(255, 255, 255, 0.3);
-        transition: transform 0.2s;
+        transition: transform 0.15s;
       }
 
       #toolbar-blur-intensity::-webkit-slider-thumb:hover {
-        transform: scale(1.15);
+        transform: scale(1.1);
         box-shadow:
-          0 4px 12px rgba(102, 126, 234, 0.5),
-          0 2px 6px rgba(102, 126, 234, 0.4),
+          0 3px 9px rgba(102, 126, 234, 0.5),
+          0 2px 5px rgba(102, 126, 234, 0.4),
           inset 0 1px 0 rgba(255, 255, 255, 0.4);
       }
 
       #toolbar-blur-intensity::-moz-range-thumb {
-        width: 16px;
-        height: 16px;
+        width: 14px;
+        height: 14px;
         background: linear-gradient(135deg, #667eea, #764ba2);
         border-radius: 50%;
         cursor: pointer;
         border: none;
         box-shadow:
-          0 3px 8px rgba(102, 126, 234, 0.4),
+          0 2px 6px rgba(102, 126, 234, 0.4),
           0 1px 3px rgba(102, 126, 234, 0.3),
           inset 0 1px 0 rgba(255, 255, 255, 0.3);
-        transition: transform 0.2s;
+        transition: transform 0.15s;
       }
 
       #toolbar-blur-intensity::-moz-range-thumb:hover {
-        transform: scale(1.15);
+        transform: scale(1.1);
       }
 
       .color-picker-container {
         display: flex;
-        padding: 4px;
+        padding: 3px;
         background: linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(245, 158, 11, 0.12));
         border: 1px solid rgba(251, 191, 36, 0.4);
-        border-radius: 10px;
-        transition: all 0.25s;
+        border-radius: 8px;
+        transition: all 0.2s;
       }
 
       .color-picker-container:hover {
-        box-shadow: 0 4px 12px rgba(251, 191, 36, 0.25);
+        box-shadow: 0 3px 8px rgba(251, 191, 36, 0.25);
         border-color: rgba(251, 191, 36, 0.6);
       }
 
       #toolbar-color-picker {
-        width: 36px;
-        height: 30px;
+        width: 30px;
+        height: 24px;
         border: none;
-        border-radius: 7px;
+        border-radius: 6px;
         cursor: pointer;
         background: none;
       }
@@ -471,20 +460,19 @@ function toggleToolbar() {
 
       .dropdown-menu {
         position: absolute;
-        top: calc(100% + 10px);
+        top: calc(100% + 6px);
         right: 0;
-        min-width: 220px;
+        min-width: 190px;
         background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%);
         border: 1px solid rgba(226, 232, 240, 0.8);
-        border-radius: 12px;
+        border-radius: 10px;
         box-shadow:
-          0 20px 50px -12px rgba(0, 0, 0, 0.25),
-          0 10px 25px -8px rgba(0, 0, 0, 0.15),
-          0 0 0 1px rgba(148, 163, 184, 0.1);
-        padding: 8px;
+          0 15px 35px -10px rgba(0, 0, 0, 0.25),
+          0 8px 18px -6px rgba(0, 0, 0, 0.15);
+        padding: 6px;
         display: none;
         z-index: 2147483647;
-        animation: dropdownFadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        animation: dropdownFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         backdrop-filter: blur(20px) saturate(180%);
       }
 
@@ -505,27 +493,27 @@ function toggleToolbar() {
 
       .dropdown-item {
         width: 100%;
-        padding: 10px 14px;
+        padding: 8px 10px;
         border: none;
         background: none;
         text-align: left;
         cursor: pointer;
-        border-radius: 8px;
+        border-radius: 6px;
         display: flex;
         align-items: center;
-        gap: 12px;
-        font-size: 14px;
+        gap: 8px;
+        font-size: 13px;
         color: #475569;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
         font-weight: 500;
       }
 
       .dropdown-item i {
-        font-size: 17px;
-        width: 22px;
+        font-size: 15px;
+        width: 18px;
         text-align: center;
         color: #64748b;
-        transition: all 0.2s;
+        transition: all 0.15s;
       }
 
       .dropdown-item span:first-of-type {
@@ -533,14 +521,14 @@ function toggleToolbar() {
       }
 
       .shortcut {
-        font-size: 11px;
+        font-size: 10px;
         color: #94a3b8;
         font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
         background: rgba(148, 163, 184, 0.12);
-        padding: 3px 7px;
-        border-radius: 5px;
+        padding: 2px 5px;
+        border-radius: 4px;
         font-weight: 600;
-        letter-spacing: 0.3px;
+        letter-spacing: 0.2px;
       }
 
       .dropdown-item:hover {
@@ -570,25 +558,6 @@ function toggleToolbar() {
           transparent 100%
         );
         margin: 6px 10px;
-      }
-
-      #toolbar-status-bar {
-        padding: 10px 14px;
-        border-top: 1px solid rgba(226, 232, 240, 0.6);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        font-size: 12px;
-        background: linear-gradient(to bottom,
-          rgba(241, 245, 249, 0.3) 0%,
-          rgba(248, 250, 252, 0.5) 100%);
-        border-radius: 0 0 16px 16px;
-      }
-
-      #toolbar-status {
-        color: #64748b;
-        font-weight: 600;
-        letter-spacing: 0.3px;
       }
 
       #toolbar-help {
