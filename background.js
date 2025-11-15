@@ -169,6 +169,11 @@ function toggleToolbar() {
           </div>
         </div>
 
+        <!-- Keep Blur Toggle -->
+        <button id="toolbar-keep-blur" title="Keep blur on reload (disabled)" class="keep-blur-btn">
+          <i class="bi bi-pin-angle"></i>
+        </button>
+
         <div class="toolbar-separator"></div>
 
         <!-- Premium Button -->
@@ -675,6 +680,32 @@ function toggleToolbar() {
       #toolbar-close:hover {
         background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.15)) !important;
         color: #ef4444 !important;
+      }
+
+      .keep-blur-btn {
+        background: linear-gradient(135deg, rgba(100, 116, 139, 0.08), rgba(71, 85, 105, 0.08)) !important;
+        border-color: rgba(100, 116, 139, 0.25) !important;
+        transition: all 0.2s ease !important;
+      }
+
+      .keep-blur-btn:hover {
+        background: linear-gradient(135deg, rgba(100, 116, 139, 0.12), rgba(71, 85, 105, 0.12)) !important;
+        color: #64748b !important;
+      }
+
+      .keep-blur-btn.active {
+        background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(22, 163, 74, 0.15)) !important;
+        border-color: rgba(34, 197, 94, 0.4) !important;
+        color: #22c55e !important;
+      }
+
+      .keep-blur-btn.active:hover {
+        background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.2)) !important;
+        color: #16a34a !important;
+      }
+
+      .keep-blur-btn.active i {
+        transform: rotate(45deg);
       }
     `;
     document.head.appendChild(style);
