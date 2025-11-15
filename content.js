@@ -33,7 +33,8 @@ const BLUR_PRESETS = {
 let customPresets = [];
 
 // Clear all blur and highlight effects
-async function clearAllBlurs() {
+// @param {boolean} clearStorage - If true, also delete saved state from storage (default: true)
+async function clearAllBlurs(clearStorage = true) {
   document.querySelectorAll('.blurred').forEach(el => el.classList.remove('blurred'));
   document.querySelectorAll('.highlighted').forEach(el => el.classList.remove('highlighted'));
   document.querySelectorAll('.blur-region').forEach(el => el.remove());
@@ -51,17 +52,21 @@ async function clearAllBlurs() {
     }
   });
 
-  // Also clear the saved state for this domain so it doesn't restore on reload
-  const domain = getCurrentDomain();
-  try {
-    const result = await chrome.storage.local.get(['blurConfigs']);
-    const configs = result.blurConfigs || {};
-    if (configs[domain]) {
-      delete configs[domain];
-      await chrome.storage.local.set({ blurConfigs: configs });
+  // Only clear saved state if explicitly requested (e.g., user clicked Clear All button)
+  // Don't clear when we're just preparing DOM to load saved state
+  if (clearStorage) {
+    const domain = getCurrentDomain();
+    try {
+      const result = await chrome.storage.local.get(['blurConfigs']);
+      const configs = result.blurConfigs || {};
+      if (configs[domain]) {
+        delete configs[domain];
+        await chrome.storage.local.set({ blurConfigs: configs });
+        console.log('[Blurt-ool] Cleared saved state for', domain);
+      }
+    } catch (error) {
+      console.error('[Blurt-ool] Error clearing saved state:', error);
     }
-  } catch (error) {
-    console.error('Error clearing saved state:', error);
   }
 }
 
@@ -104,8 +109,8 @@ async function applyPreset(preset) {
     return;
   }
 
-  // Clear current state
-  await clearAllBlurs();
+  // Clear current state (but don't delete saved config - we're applying it)
+  await clearAllBlurs(false);
 
   // Restore settings
   blurIntensity = preset.settings.blurIntensity || blurIntensity;
@@ -403,16 +408,19 @@ async function saveCurrentState(silent = false) {
   const domain = getCurrentDomain();
   const state = serializeBlurState();
 
+  console.log('[Blurt-ool] Saving state for', domain, ':', state);
+
   try {
     const result = await chrome.storage.local.get(['blurConfigs']);
     const configs = result.blurConfigs || {};
     configs[domain] = state;
     await chrome.storage.local.set({ blurConfigs: configs });
+    console.log('[Blurt-ool] State saved successfully');
     if (!silent) {
       showNotification('Configuration saved for ' + domain);
     }
   } catch (error) {
-    console.error('Error saving state:', error);
+    console.error('[Blurt-ool] Error saving state:', error);
     if (!silent) {
       showNotification('Error saving configuration', true);
     }
@@ -422,16 +430,22 @@ async function saveCurrentState(silent = false) {
 async function loadSavedState(showNoConfigNotification = true) {
   const domain = getCurrentDomain();
 
+  console.log('[Blurt-ool] Loading state for', domain);
+
   try {
     // First, try to load from saved configurations
     const result = await chrome.storage.local.get(['blurConfigs', 'customPresets']);
     const configs = result.blurConfigs || {};
     const state = configs[domain];
 
+    console.log('[Blurt-ool] Found saved state:', state);
+
     if (state) {
-      // Clear current state before loading
-      await clearAllBlurs();
+      console.log('[Blurt-ool] Applying saved state');
+      // Clear current state before loading (but don't delete the saved config)
+      await clearAllBlurs(false);
       applySavedState(state);
+      console.log('[Blurt-ool] State applied successfully');
       return true;
     }
 
@@ -445,7 +459,7 @@ async function loadSavedState(showNoConfigNotification = true) {
         new Date(b.createdAt) - new Date(a.createdAt)
       )[0];
 
-      await clearAllBlurs();
+      await clearAllBlurs(false);
       await applyPreset(mostRecent);
       return true;
     }
@@ -470,6 +484,8 @@ async function autoSaveIfKeepBlurEnabled() {
 function applySavedState(state) {
   if (!state) return;
 
+  console.log('[Blurt-ool] applySavedState called with:', state);
+
   // Apply settings
   if (state.settings) {
     blurIntensity = state.settings.blurIntensity || 5;
@@ -485,22 +501,26 @@ function applySavedState(state) {
   }
 
   // Apply blurred elements
+  console.log('[Blurt-ool] Applying', state.blurred?.length || 0, 'blurred elements');
   state.blurred?.forEach(selector => {
     try {
       const elements = document.querySelectorAll(selector);
+      console.log('[Blurt-ool] Selector', selector, 'matched', elements.length, 'elements');
       elements.forEach(el => el.classList.add('blurred'));
     } catch (e) {
-      console.warn('Invalid selector:', selector);
+      console.warn('[Blurt-ool] Invalid selector:', selector, e);
     }
   });
 
   // Apply highlighted elements
+  console.log('[Blurt-ool] Applying', state.highlighted?.length || 0, 'highlighted elements');
   state.highlighted?.forEach(selector => {
     try {
       const elements = document.querySelectorAll(selector);
+      console.log('[Blurt-ool] Selector', selector, 'matched', elements.length, 'elements');
       elements.forEach(el => el.classList.add('highlighted'));
     } catch (e) {
-      console.warn('Invalid selector:', selector);
+      console.warn('[Blurt-ool] Invalid selector:', selector, e);
     }
   });
 
@@ -527,9 +547,11 @@ function applySavedState(state) {
   });
 
   // Apply text blurs (best effort - may not work if page structure changed)
+  console.log('[Blurt-ool] Applying', state.textBlurs?.length || 0, 'text blurs');
   state.textBlurs?.forEach(textData => {
     try {
       const parents = document.querySelectorAll(textData.parentSelector);
+      console.log('[Blurt-ool] Text blur parent selector', textData.parentSelector, 'matched', parents.length, 'parents');
       parents.forEach(parent => {
         // Find text nodes containing the blurred text
         const walker = document.createTreeWalker(parent, NodeFilter.SHOW_TEXT, null, false);
@@ -561,9 +583,11 @@ function applySavedState(state) {
   });
 
   // Apply text highlights (best effort - may not work if page structure changed)
+  console.log('[Blurt-ool] Applying', state.textHighlights?.length || 0, 'text highlights');
   state.textHighlights?.forEach(textData => {
     try {
       const parents = document.querySelectorAll(textData.parentSelector);
+      console.log('[Blurt-ool] Text highlight parent selector', textData.parentSelector, 'matched', parents.length, 'parents');
       parents.forEach(parent => {
         // Find text nodes containing the highlighted text
         const walker = document.createTreeWalker(parent, NodeFilter.SHOW_TEXT, null, false);
@@ -1581,7 +1605,8 @@ function setupToolbarEventListeners() {
   // Clear all button
   if (clearBtn) {
     clearBtn.addEventListener('click', async () => {
-      await clearAllBlurs();
+      // Clear DOM and also delete saved state (true = clear storage)
+      await clearAllBlurs(true);
       blurHistory = [];
       redoHistory = [];
       removeOverlay();
