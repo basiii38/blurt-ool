@@ -178,15 +178,7 @@ function toggleToolbar() {
           </svg>
         </button>
 
-        <!-- Help and Close -->
-        <button id="toolbar-help" title="Help">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5" fill="none"/>
-            <path d="M8 11.5V11.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <path d="M8 4.5C6.62 4.5 5.5 5.62 5.5 7H7C7 6.45 7.45 6 8 6C8.55 6 9 6.45 9 7C9 7.5 8.5 7.75 8 8.5V9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-        </button>
-
+        <!-- Close -->
         <button id="toolbar-close" title="Close">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -673,16 +665,6 @@ function toggleToolbar() {
           transparent 100%
         );
         margin: 6px 10px;
-      }
-
-      #toolbar-help {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.1)) !important;
-        border-color: rgba(59, 130, 246, 0.3) !important;
-      }
-
-      #toolbar-help:hover {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.15)) !important;
-        color: #3b82f6 !important;
       }
 
       #toolbar-close {
