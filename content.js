@@ -197,7 +197,7 @@ function updateBlurStyle() {
       filter: blur(${blurIntensity}px);
     }
     .blur-region {
-      position: fixed;
+      position: absolute;
       background-color: rgba(0, 0, 0, 0.01);
       backdrop-filter: blur(${blurIntensity}px);
       z-index: ${Z_INDEX_REGION};
@@ -215,7 +215,7 @@ function updateBlurStyle() {
       opacity: ${highlightOpacity} !important;
     }
     .highlight-region {
-      position: fixed;
+      position: absolute;
       background-color: ${highlightColor};
       opacity: ${highlightOpacity};
       z-index: ${Z_INDEX_REGION};
@@ -1849,30 +1849,28 @@ document.addEventListener('click', (event) => {
   }
 }, true);
 
-// Draw region handlers with fixed positioning
+// Draw region handlers with absolute positioning
 document.addEventListener('mousedown', (event) => {
   if (isDrawing) {
     startX = event.clientX + window.scrollX;
     startY = event.clientY + window.scrollY;
     region = document.createElement('div');
     region.className = isHighlightMode ? 'highlight-region' : 'blur-region';
-    region.style.left = `${event.clientX}px`;
-    region.style.top = `${event.clientY}px`;
+    region.style.left = `${startX}px`;
+    region.style.top = `${startY}px`;
     document.body.appendChild(region);
   }
 });
 
 document.addEventListener('mousemove', (event) => {
   if (region && isDrawing) {
-    const currentX = event.clientX;
-    const currentY = event.clientY;
-    const initialX = startX - window.scrollX;
-    const initialY = startY - window.scrollY;
+    const currentX = event.clientX + window.scrollX;
+    const currentY = event.clientY + window.scrollY;
 
-    const width = Math.abs(currentX - initialX);
-    const height = Math.abs(currentY - initialY);
-    const left = Math.min(currentX, initialX);
-    const top = Math.min(currentY, initialY);
+    const width = Math.abs(currentX - startX);
+    const height = Math.abs(currentY - startY);
+    const left = Math.min(currentX, startX);
+    const top = Math.min(currentY, startY);
 
     region.style.width = `${width}px`;
     region.style.height = `${height}px`;
