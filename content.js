@@ -33,7 +33,7 @@ const BLUR_PRESETS = {
 let customPresets = [];
 
 // Clear all blur and highlight effects
-function clearAllBlurs() {
+async function clearAllBlurs() {
   document.querySelectorAll('.blurred').forEach(el => el.classList.remove('blurred'));
   document.querySelectorAll('.highlighted').forEach(el => el.classList.remove('highlighted'));
   document.querySelectorAll('.blur-region').forEach(el => el.remove());
@@ -50,6 +50,19 @@ function clearAllBlurs() {
       span.remove();
     }
   });
+
+  // Also clear the saved state for this domain so it doesn't restore on reload
+  const domain = getCurrentDomain();
+  try {
+    const result = await chrome.storage.local.get(['blurConfigs']);
+    const configs = result.blurConfigs || {};
+    if (configs[domain]) {
+      delete configs[domain];
+      await chrome.storage.local.set({ blurConfigs: configs });
+    }
+  } catch (error) {
+    console.error('Error clearing saved state:', error);
+  }
 }
 
 // Save complete blur state as a preset
@@ -79,7 +92,7 @@ async function saveAsPreset(name, description = '') {
 }
 
 // Apply a saved preset
-function applyPreset(preset) {
+async function applyPreset(preset) {
   // Validate preset structure
   if (!preset || typeof preset !== 'object') {
     showNotification('❌ Invalid preset data', true);
@@ -92,7 +105,7 @@ function applyPreset(preset) {
   }
 
   // Clear current state
-  clearAllBlurs();
+  await clearAllBlurs();
 
   // Restore settings
   blurIntensity = preset.settings.blurIntensity || blurIntensity;
@@ -417,7 +430,7 @@ async function loadSavedState(showNoConfigNotification = true) {
 
     if (state) {
       // Clear current state before loading
-      clearAllBlurs();
+      await clearAllBlurs();
       applySavedState(state);
       return true;
     }
@@ -432,8 +445,8 @@ async function loadSavedState(showNoConfigNotification = true) {
         new Date(b.createdAt) - new Date(a.createdAt)
       )[0];
 
-      clearAllBlurs();
-      applyPreset(mostRecent);
+      await clearAllBlurs();
+      await applyPreset(mostRecent);
       return true;
     }
 
@@ -1167,10 +1180,10 @@ function createPresetButton(name, valueOrPreset, desc, isCustom) {
     btn.style.borderColor = 'rgba(0,0,0,0.1)';
     btn.style.transform = 'translateY(0)';
   });
-  btn.addEventListener('click', () => {
+  btn.addEventListener('click', async () => {
     if (isCustom && typeof valueOrPreset === 'object') {
       // Apply full preset (new custom preset with blur state)
-      applyPreset(valueOrPreset);
+      await applyPreset(valueOrPreset);
     } else {
       // Apply default preset (just blur intensity)
       const value = valueOrPreset;
@@ -1567,8 +1580,8 @@ function setupToolbarEventListeners() {
 
   // Clear all button
   if (clearBtn) {
-    clearBtn.addEventListener('click', () => {
-      clearAllBlurs();
+    clearBtn.addEventListener('click', async () => {
+      await clearAllBlurs();
       blurHistory = [];
       redoHistory = [];
       removeOverlay();
