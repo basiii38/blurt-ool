@@ -689,8 +689,7 @@ function showKeyboardShortcuts() {
       { key: 'Esc', desc: 'Cancel current selection mode' }
     ]},
     { category: 'Modes & Effects', items: [
-      { key: 'Ctrl+Shift+B', desc: 'Toggle Blur/Highlight mode' },
-      { key: '1, 2, 3', desc: 'Quick blur presets (Light, Medium, Heavy)' }
+      { key: 'Ctrl+Shift+B', desc: 'Toggle Blur/Highlight mode' }
     ]},
     { category: 'History', items: [
       { key: 'Ctrl+Z', desc: 'Undo last action' },
@@ -2048,22 +2047,6 @@ document.addEventListener('keydown', (event) => {
   if (event.ctrlKey && event.shiftKey && event.key === 'A') {
     event.preventDefault();
     quickSelectElements('video', 'videos');
-    return;
-  }
-
-  // 1, 2, 3: Quick blur presets
-  if (!event.ctrlKey && !event.shiftKey && event.key >= '1' && event.key <= '3') {
-    const presets = [BLUR_PRESETS.light, BLUR_PRESETS.medium, BLUR_PRESETS.heavy];
-    const presetNames = ['Light', 'Medium', 'Heavy'];
-    const index = parseInt(event.key) - 1;
-
-    blurIntensity = presets[index];
-    updateBlurStyle();
-
-    const intensitySlider = document.getElementById('toolbar-blur-intensity');
-    if (intensitySlider) intensitySlider.value = blurIntensity;
-
-    showNotification(`${presetNames[index]} blur preset applied`);
     return;
   }
 

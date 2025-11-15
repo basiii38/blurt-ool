@@ -56,7 +56,6 @@ Quickly blur/highlight common elements:
 - **Ctrl+E**: Export configuration to file
 - **Ctrl+A**: Select all images
 - **Ctrl+Shift+A**: Select all videos
-- **1, 2, 3**: Quick blur presets (Light, Medium, Heavy)
 - **Delete**: Clear all blur/highlight effects
 - **Ctrl+Shift+H**: Toggle toolbar visibility
 - **Ctrl+Shift+C**: Toggle compact toolbar mode
@@ -264,7 +263,6 @@ node create-png-icons.js
 - ✨ **Enhanced Keyboard Shortcuts** - 15+ new shortcuts including:
   - Ctrl+S (Save), Ctrl+O (Load), Ctrl+E (Export)
   - Ctrl+A (Select all images), Ctrl+Shift+A (Select all videos)
-  - 1, 2, 3 (Quick preset application)
   - Delete (Clear all effects)
 - ✨ **Compact Toolbar Mode** - Toggle with Ctrl+Shift+C for minimal UI
 - ✨ **Active Tool Visual Feedback** - Highlighted buttons show active tool
