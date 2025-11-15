@@ -107,7 +107,10 @@ function applyPreset(preset) {
   if (intensitySlider) intensitySlider.value = blurIntensity;
   if (colorPicker) colorPicker.value = highlightColor;
   if (modeToggle) {
-    modeToggle.textContent = isHighlightMode ? '🖍️' : '🌫️';
+    const modeIcon = modeToggle.querySelector('#mode-icon');
+    if (modeIcon) {
+      modeIcon.className = isHighlightMode ? 'bi bi-highlighter' : 'bi bi-droplet-fill';
+    }
     modeToggle.title = isHighlightMode ? 'Switch to Blur Mode' : 'Switch to Highlight Mode';
   }
 
@@ -1482,7 +1485,10 @@ function setupToolbarEventListeners() {
   if (modeToggle) {
     modeToggle.addEventListener('click', () => {
       isHighlightMode = !isHighlightMode;
-      modeToggle.textContent = isHighlightMode ? '🖍️' : '🌫️';
+      const modeIcon = modeToggle.querySelector('#mode-icon');
+      if (modeIcon) {
+        modeIcon.className = isHighlightMode ? 'bi bi-highlighter' : 'bi bi-droplet-fill';
+      }
       modeToggle.title = isHighlightMode ? 'Switch to Blur Mode' : 'Switch to Highlight Mode';
       if (intensitySlider) {
         intensitySlider.title = isHighlightMode ? 'Highlight Opacity' : 'Blur Intensity';
