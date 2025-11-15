@@ -2091,6 +2091,39 @@ document.addEventListener('mouseup', (event) => {
 
 updateBlurStyle();
 
+// Clear drawn regions on page navigation
+// This ensures drawn regions don't persist when navigating to new pages
+let lastUrl = location.href;
+new MutationObserver(() => {
+  const currentUrl = location.href;
+  if (currentUrl !== lastUrl) {
+    lastUrl = currentUrl;
+    // URL changed (SPA navigation) - clear all blur effects including drawn regions
+    // Only clear the visual effects, not the toolbar
+    document.querySelectorAll('.blur-region, .highlight-region').forEach(el => el.remove());
+    document.querySelectorAll('.blurred').forEach(el => el.classList.remove('blurred'));
+    document.querySelectorAll('.highlighted').forEach(el => el.classList.remove('highlighted'));
+    // Unwrap text blurs
+    document.querySelectorAll('.blur-text, .highlight-text').forEach(span => {
+      if (span.parentNode) {
+        while (span.firstChild) {
+          span.parentNode.insertBefore(span.firstChild, span);
+        }
+        span.remove();
+      }
+    });
+    // Reset history
+    blurHistory = [];
+    redoHistory = [];
+  }
+}).observe(document, { subtree: true, childList: true });
+
+// Also clear on full page navigation
+window.addEventListener('beforeunload', () => {
+  // Clear drawn regions before page unloads
+  document.querySelectorAll('.blur-region, .highlight-region').forEach(el => el.remove());
+});
+
 // Listen for messages from the injected script
 window.addEventListener('message', async (event) => {
   if (event.source !== window) return;
