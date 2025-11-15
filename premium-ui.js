@@ -52,7 +52,7 @@ function renderActivationView(licenseInfo) {
     ? `
       <div class="blur-trial-banner">
         <i class="bi bi-hourglass-split"></i>
-        <span>Free Trial: ${licenseInfo.trialUsesRemaining} / ${licenseInfo.maxTrialUses} uses remaining</span>
+        <span>Free Trial: ${licenseInfo.trialUsesRemaining} / ${licenseInfo.maxTrialUses} uses remaining (all premium tools)</span>
       </div>
     `
     : `
@@ -70,16 +70,28 @@ function renderActivationView(licenseInfo) {
 
     <div class="blur-features-grid">
       <div class="blur-feature-item">
-        <i class="bi bi-infinity"></i>
-        <span>Unlimited Undo/Redo</span>
+        <i class="bi bi-cursor-fill"></i>
+        <span>Select Element Tool</span>
+      </div>
+      <div class="blur-feature-item">
+        <i class="bi bi-bounding-box"></i>
+        <span>Draw Region Tool</span>
+      </div>
+      <div class="blur-feature-item">
+        <i class="bi bi-fonts"></i>
+        <span>Select Text Tool</span>
       </div>
       <div class="blur-feature-item">
         <i class="bi bi-grid-3x3-gap"></i>
         <span>Quick Select Tool</span>
       </div>
       <div class="blur-feature-item">
+        <i class="bi bi-arrow-counterclockwise"></i>
+        <span>Unlimited Undo/Redo</span>
+      </div>
+      <div class="blur-feature-item">
         <i class="bi bi-stars"></i>
-        <span>Unlimited Presets</span>
+        <span>Presets Manager</span>
       </div>
       <div class="blur-feature-item">
         <i class="bi bi-download"></i>
@@ -87,11 +99,7 @@ function renderActivationView(licenseInfo) {
       </div>
       <div class="blur-feature-item">
         <i class="bi bi-cloud-check"></i>
-        <span>Future Updates</span>
-      </div>
-      <div class="blur-feature-item">
-        <i class="bi bi-headset"></i>
-        <span>Priority Support</span>
+        <span>All Future Updates</span>
       </div>
     </div>
 
@@ -183,15 +191,27 @@ function renderActivatedView(licenseInfo) {
       <div class="blur-features-list">
         <div class="blur-feature-active">
           <i class="bi bi-check2"></i>
-          <span>Unlimited Undo/Redo History</span>
+          <span>Select Element Tool</span>
         </div>
         <div class="blur-feature-active">
           <i class="bi bi-check2"></i>
-          <span>Quick Select Similar Elements</span>
+          <span>Draw Region Tool</span>
         </div>
         <div class="blur-feature-active">
           <i class="bi bi-check2"></i>
-          <span>Unlimited Custom Presets</span>
+          <span>Select Text Tool</span>
+        </div>
+        <div class="blur-feature-active">
+          <i class="bi bi-check2"></i>
+          <span>Quick Select Tool</span>
+        </div>
+        <div class="blur-feature-active">
+          <i class="bi bi-check2"></i>
+          <span>Unlimited Undo/Redo</span>
+        </div>
+        <div class="blur-feature-active">
+          <i class="bi bi-check2"></i>
+          <span>Presets Manager</span>
         </div>
         <div class="blur-feature-active">
           <i class="bi bi-check2"></i>
