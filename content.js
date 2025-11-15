@@ -392,7 +392,7 @@ function getElementSelector(element) {
   return selector;
 }
 
-async function saveCurrentState() {
+async function saveCurrentState(silent = false) {
   const domain = getCurrentDomain();
   const state = serializeBlurState();
 
@@ -401,10 +401,14 @@ async function saveCurrentState() {
     const configs = result.blurConfigs || {};
     configs[domain] = state;
     await chrome.storage.local.set({ blurConfigs: configs });
-    showNotification('Configuration saved for ' + domain);
+    if (!silent) {
+      showNotification('Configuration saved for ' + domain);
+    }
   } catch (error) {
     console.error('Error saving state:', error);
-    showNotification('Error saving configuration', true);
+    if (!silent) {
+      showNotification('Error saving configuration', true);
+    }
   }
 }
 
@@ -480,7 +484,7 @@ async function saveKeepBlurState(enabled) {
 
 async function autoSaveIfKeepBlurEnabled() {
   if (keepBlurEnabled) {
-    await saveCurrentState();
+    await saveCurrentState(true); // Silent save - no notification
   }
 }
 
@@ -779,7 +783,7 @@ function updateStatusIndicator() {
 }
 
 // Quick select common elements
-function quickSelectElements(selector, description) {
+async function quickSelectElements(selector, description) {
   const elements = document.querySelectorAll(selector);
   let count = 0;
 
@@ -799,7 +803,7 @@ function quickSelectElements(selector, description) {
   showNotification(`${isHighlightMode ? 'Highlighted' : 'Blurred'} ${count} ${description}`);
 
   // Auto-save if Keep Blur is enabled
-  autoSaveIfKeepBlurEnabled();
+  await autoSaveIfKeepBlurEnabled();
 }
 
 // ===== CUSTOM PRESETS MANAGEMENT =====
@@ -1838,7 +1842,7 @@ function setupToolbarEventListeners() {
             showToast(`Trial: ${optionAccess.remainingUses} uses remaining`, 'info');
           }
 
-          quickSelectElements(option.selector, option.description);
+          await quickSelectElements(option.selector, option.description);
           menu.remove();
           // Clean up listener when menu is removed
           if (quickSelectCloseListener) {
@@ -1909,7 +1913,7 @@ function setupToolbarEventListeners() {
 }
 
 // Keyboard shortcuts
-document.addEventListener('keydown', (event) => {
+document.addEventListener('keydown', async (event) => {
   // Don't trigger shortcuts if user is typing in an input field (except for inputs in our toolbar)
   const targetIsInput = event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA';
   const targetInToolbar = event.target.closest('#blur-toolbar-container');
@@ -1974,14 +1978,14 @@ document.addEventListener('keydown', (event) => {
   // Ctrl+A: Select all images (when toolbar is active)
   if (event.ctrlKey && !event.shiftKey && event.key === 'a' && document.getElementById('blur-toolbar-container')) {
     event.preventDefault();
-    quickSelectElements('img', 'images');
+    await quickSelectElements('img', 'images');
     return;
   }
 
   // Ctrl+Shift+A: Select all videos
   if (event.ctrlKey && event.shiftKey && event.key === 'A') {
     event.preventDefault();
-    quickSelectElements('video', 'videos');
+    await quickSelectElements('video', 'videos');
     return;
   }
 
@@ -2047,7 +2051,7 @@ document.addEventListener('mousemove', (event) => {
   }
 });
 
-document.addEventListener('click', (event) => {
+document.addEventListener('click', async (event) => {
   if (isSelecting) {
     event.preventDefault();
     event.stopPropagation();
@@ -2077,7 +2081,7 @@ document.addEventListener('click', (event) => {
     }
     exitSelectMode();
     // Auto-save if Keep Blur is enabled
-    autoSaveIfKeepBlurEnabled();
+    await autoSaveIfKeepBlurEnabled();
     return false;
   }
 }, true);
@@ -2112,7 +2116,7 @@ document.addEventListener('mousemove', (event) => {
   }
 });
 
-document.addEventListener('mouseup', (event) => {
+document.addEventListener('mouseup', async (event) => {
   if (isDrawing) {
     isDrawing = false;
     if (region) {
@@ -2122,7 +2126,7 @@ document.addEventListener('mouseup', (event) => {
         const actionType = region.classList.contains('highlight-region') ? 'highlight-region' : 'region';
         trackBlurAction(region, actionType);
         // Auto-save if Keep Blur is enabled
-        autoSaveIfKeepBlurEnabled();
+        await autoSaveIfKeepBlurEnabled();
       } else {
         region.remove();
       }
@@ -2136,7 +2140,7 @@ document.addEventListener('mouseup', (event) => {
 document.addEventListener('mouseup', (event) => {
   if (isSelectingText) {
     // Small delay to allow selection to complete
-    setTimeout(() => {
+    setTimeout(async () => {
       const selection = window.getSelection();
       if (selection.rangeCount > 0 && !selection.isCollapsed) {
         const range = selection.getRangeAt(0);
@@ -2165,7 +2169,7 @@ document.addEventListener('mouseup', (event) => {
           showNotification(`Text ${isHighlightMode ? 'highlighted' : 'blurred'}`);
 
           // Auto-save if Keep Blur is enabled
-          autoSaveIfKeepBlurEnabled();
+          await autoSaveIfKeepBlurEnabled();
 
           // Exit text selection mode after successful blur
           exitTextSelectMode();

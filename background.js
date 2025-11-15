@@ -171,7 +171,9 @@ function toggleToolbar() {
 
         <!-- Keep Blur Toggle -->
         <button id="toolbar-keep-blur" title="Keep blur on reload (disabled)" class="keep-blur-btn">
-          <i class="bi bi-pin-angle"></i>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M9.5 1.5C9.78 1.5 10 1.72 10 2V5.5C10 6.88 11.12 8 12.5 8H14C14.28 8 14.5 8.22 14.5 8.5C14.5 8.78 14.28 9 14 9H12.5C11.12 9 10 10.12 10 11.5V14L8.5 15.5L7 14V11.5C7 10.12 5.88 9 4.5 9H3C2.72 9 2.5 8.78 2.5 8.5C2.5 8.22 2.72 8 3 8H4.5C5.88 8 7 6.88 7 5.5V2C7 1.72 7.22 1.5 7.5 1.5H9.5Z" fill="currentColor" stroke="currentColor" stroke-width="0.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
         </button>
 
         <div class="toolbar-separator"></div>
@@ -704,7 +706,7 @@ function toggleToolbar() {
         color: #16a34a !important;
       }
 
-      .keep-blur-btn.active i {
+      .keep-blur-btn.active svg {
         transform: rotate(45deg);
       }
     `;
