@@ -102,12 +102,74 @@ async function saveAsPreset(name, description = '') {
 async function applyPreset(preset) {
   // Validate preset structure
   if (!preset || typeof preset !== 'object') {
+    console.error('[Blurt-ool] Invalid preset: not an object');
     showNotification('❌ Invalid preset data', true);
     return;
   }
 
-  if (!preset.settings || !preset.state) {
-    showNotification('❌ Incomplete preset data', true);
+  if (!preset.settings || typeof preset.settings !== 'object') {
+    console.error('[Blurt-ool] Invalid preset: missing or invalid settings');
+    showNotification('❌ Incomplete preset data (missing settings)', true);
+    return;
+  }
+
+  if (!preset.state || typeof preset.state !== 'object') {
+    console.error('[Blurt-ool] Invalid preset: missing or invalid state');
+    showNotification('❌ Incomplete preset data (missing state)', true);
+    return;
+  }
+
+  // Validate settings values
+  if (preset.settings.blurIntensity !== undefined) {
+    const intensity = Number(preset.settings.blurIntensity);
+    if (isNaN(intensity) || intensity < 0 || intensity > 50) {
+      console.error('[Blurt-ool] Invalid blur intensity:', preset.settings.blurIntensity);
+      showNotification('❌ Invalid blur intensity in preset', true);
+      return;
+    }
+  }
+
+  if (preset.settings.highlightOpacity !== undefined) {
+    const opacity = Number(preset.settings.highlightOpacity);
+    if (isNaN(opacity) || opacity < 0 || opacity > 1) {
+      console.error('[Blurt-ool] Invalid highlight opacity:', preset.settings.highlightOpacity);
+      showNotification('❌ Invalid highlight opacity in preset', true);
+      return;
+    }
+  }
+
+  if (preset.settings.highlightColor !== undefined) {
+    const color = String(preset.settings.highlightColor);
+    // Basic hex color validation
+    if (!/^#[0-9A-Fa-f]{6}$/.test(color)) {
+      console.error('[Blurt-ool] Invalid highlight color:', preset.settings.highlightColor);
+      showNotification('❌ Invalid highlight color in preset', true);
+      return;
+    }
+  }
+
+  // Validate state arrays
+  if (preset.state.blurred && !Array.isArray(preset.state.blurred)) {
+    console.error('[Blurt-ool] Invalid state: blurred is not an array');
+    showNotification('❌ Invalid preset state format', true);
+    return;
+  }
+
+  if (preset.state.highlighted && !Array.isArray(preset.state.highlighted)) {
+    console.error('[Blurt-ool] Invalid state: highlighted is not an array');
+    showNotification('❌ Invalid preset state format', true);
+    return;
+  }
+
+  if (preset.state.regions && !Array.isArray(preset.state.regions)) {
+    console.error('[Blurt-ool] Invalid state: regions is not an array');
+    showNotification('❌ Invalid preset state format', true);
+    return;
+  }
+
+  if (preset.state.highlightRegions && !Array.isArray(preset.state.highlightRegions)) {
+    console.error('[Blurt-ool] Invalid state: highlightRegions is not an array');
+    showNotification('❌ Invalid preset state format', true);
     return;
   }
 
@@ -345,6 +407,31 @@ function getCurrentDomain() {
   return window.location.hostname;
 }
 
+// Check storage quota and warn if approaching limit
+async function checkStorageQuota() {
+  try {
+    const result = await chrome.storage.local.get(null);
+    const dataSize = JSON.stringify(result).length;
+    // Chrome local storage limit is approximately 10MB (10485760 bytes)
+    const maxSize = 10485760;
+    const warningThreshold = maxSize * 0.8; // Warn at 80%
+    const criticalThreshold = maxSize * 0.95; // Critical at 95%
+
+    if (dataSize >= criticalThreshold) {
+      showNotification('⚠️ Storage almost full! Delete old presets to free up space.', true);
+      return { allowed: false, percentage: (dataSize / maxSize) * 100, size: dataSize };
+    } else if (dataSize >= warningThreshold) {
+      showNotification('⚠️ Storage usage high. Consider deleting old presets.', false);
+      return { allowed: true, percentage: (dataSize / maxSize) * 100, size: dataSize };
+    }
+
+    return { allowed: true, percentage: (dataSize / maxSize) * 100, size: dataSize };
+  } catch (error) {
+    console.error('[Blurt-ool] Error checking storage quota:', error);
+    return { allowed: true, percentage: 0, size: 0 };
+  }
+}
+
 function serializeBlurState() {
   const state = {
     blurred: [],
@@ -408,49 +495,99 @@ function serializeBlurState() {
 function getElementSelector(element) {
   if (!element || !element.tagName) return null;
 
-  // Strategy 1: If element has an ID, use it (most specific and reliable)
-  if (element.id) {
-    return `#${element.id}`;
+  // Strategy 1: If element has a unique ID, use it
+  if (element.id && /^[a-zA-Z][\w\-]*$/.test(element.id)) {
+    // Verify ID is actually unique
+    try {
+      if (document.querySelectorAll(`#${element.id}`).length === 1) {
+        return `#${element.id}`;
+      }
+    } catch (e) {
+      // Invalid ID format, continue to next strategy
+    }
   }
 
-  // Strategy 2: Build path from root using tag names and nth-child
-  // This is more reliable than just classes which can change
+  // Strategy 2: Try data attributes for uniqueness
+  for (const attr of element.attributes) {
+    if (attr.name.startsWith('data-') && attr.value) {
+      const selector = `${element.tagName.toLowerCase()}[${attr.name}="${attr.value}"]`;
+      try {
+        if (document.querySelectorAll(selector).length === 1) {
+          return selector;
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+  }
+
+  // Strategy 3: Build path from root using tag names, classes, and nth-of-type
   const path = [];
   let current = element;
+  let depth = 0;
 
-  while (current && current !== document.body) {
+  while (current && current !== document.body && depth < 10) {
     let selector = current.tagName.toLowerCase();
 
-    // Add classes if available (but filter out blur/highlight classes)
+    // Get clean classes (exclude our extension classes)
     if (current.className && typeof current.className === 'string') {
       const classes = current.className.split(' ')
         .filter(c => c &&
           !c.startsWith('blur') &&
           !c.startsWith('highlight') &&
           c !== 'element-highlight')
+        .slice(0, 3) // Limit to first 3 classes
         .join('.');
       if (classes) {
         selector += `.${classes}`;
       }
     }
 
-    // Add nth-child for specificity
+    // Use nth-of-type instead of nth-child for better stability
     if (current.parentElement) {
-      const siblings = Array.from(current.parentElement.children);
-      const index = siblings.indexOf(current) + 1;
-      if (index > 0) {
-        selector += `:nth-child(${index})`;
+      const siblings = Array.from(current.parentElement.children)
+        .filter(el => el.tagName === current.tagName);
+
+      if (siblings.length > 1) {
+        const index = siblings.indexOf(current) + 1;
+        selector += `:nth-of-type(${index})`;
       }
     }
 
     path.unshift(selector);
     current = current.parentElement;
+    depth++;
 
-    // Limit path depth to avoid overly long selectors
-    if (path.length >= 5) break;
+    // Stop if we have a unique selector
+    try {
+      const testSelector = path.join(' > ');
+      if (document.querySelectorAll(testSelector).length === 1) {
+        break;
+      }
+    } catch (e) {
+      // Invalid selector, continue building
+    }
   }
 
-  return path.join(' > ');
+  const finalSelector = path.join(' > ');
+
+  // Validate the selector works
+  try {
+    const found = document.querySelectorAll(finalSelector);
+    if (found.length > 0) {
+      return finalSelector;
+    }
+  } catch (e) {
+    console.warn('[Blurt-ool] Generated invalid selector:', finalSelector, e);
+  }
+
+  // Fallback: use tag name with all classes as last resort
+  const fallback = element.tagName.toLowerCase() +
+    (element.className && typeof element.className === 'string'
+      ? '.' + element.className.split(' ').filter(c => c && !c.startsWith('blur') && !c.startsWith('highlight')).join('.')
+      : '');
+
+  return fallback || element.tagName.toLowerCase();
 }
 
 async function saveCurrentState(silent = false) {
@@ -460,6 +597,15 @@ async function saveCurrentState(silent = false) {
   console.log('[Blurt-ool] Saving state for', domain, ':', state);
 
   try {
+    // Check storage quota before saving
+    const quotaCheck = await checkStorageQuota();
+    if (!quotaCheck.allowed) {
+      if (!silent) {
+        showNotification('Cannot save: Storage is full. Delete old presets first.', true);
+      }
+      return false;
+    }
+
     const result = await chrome.storage.local.get(['blurConfigs']);
     const configs = result.blurConfigs || {};
     configs[domain] = state;
@@ -468,11 +614,13 @@ async function saveCurrentState(silent = false) {
     if (!silent) {
       showNotification('Configuration saved for ' + domain);
     }
+    return true;
   } catch (error) {
     console.error('[Blurt-ool] Error saving state:', error);
     if (!silent) {
       showNotification('Error saving configuration', true);
     }
+    return false;
   }
 }
 
@@ -526,8 +674,33 @@ async function loadSavedState(showNoConfigNotification = true) {
 }
 
 // Auto-save functionality (Keep Blur is always enabled)
+// Debounced auto-save to prevent excessive saves
+let autoSaveTimeout = null;
 async function autoSaveIfKeepBlurEnabled() {
-  await saveCurrentState(true); // Silent save - no notification
+  // Clear previous timeout
+  if (autoSaveTimeout) {
+    clearTimeout(autoSaveTimeout);
+  }
+
+  // Debounce: wait 500ms after last change before saving
+  autoSaveTimeout = setTimeout(async () => {
+    try {
+      const saved = await saveCurrentState(true); // Silent save
+      if (saved) {
+        console.log('[Blurt-ool] Auto-saved successfully');
+        // Show subtle visual feedback
+        const toolbar = document.getElementById('blur-toolbar');
+        if (toolbar) {
+          toolbar.style.boxShadow = '0 4px 12px rgba(76, 175, 80, 0.3)';
+          setTimeout(() => {
+            toolbar.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+          }, 300);
+        }
+      }
+    } catch (error) {
+      console.error('[Blurt-ool] Auto-save failed:', error);
+    }
+  }, 500);
 }
 
 function applySavedState(state) {
@@ -535,139 +708,177 @@ function applySavedState(state) {
 
   console.log('[Blurt-ool] applySavedState called with:', state);
 
-  // Apply settings
-  if (state.settings) {
-    blurIntensity = state.settings.blurIntensity || 5;
-    highlightColor = state.settings.highlightColor || '#FFFF00';
-    highlightOpacity = state.settings.highlightOpacity || 0.5;
-    updateBlurStyle();
-
-    // Update UI controls
-    const intensitySlider = document.getElementById('toolbar-blur-intensity');
-    const colorPicker = document.getElementById('toolbar-color-picker');
-    if (intensitySlider) intensitySlider.value = blurIntensity;
-    if (colorPicker) colorPicker.value = highlightColor;
-  }
-
-  // Apply blurred elements
-  console.log('[Blurt-ool] Applying', state.blurred?.length || 0, 'blurred elements');
-  state.blurred?.forEach(selector => {
+  // Use requestAnimationFrame to ensure DOM is ready
+  requestAnimationFrame(() => {
     try {
-      const elements = document.querySelectorAll(selector);
-      console.log('[Blurt-ool] Selector', selector, 'matched', elements.length, 'elements');
-      elements.forEach(el => el.classList.add('blurred'));
-    } catch (e) {
-      console.warn('[Blurt-ool] Invalid selector:', selector, e);
-    }
-  });
+      // Apply settings
+      if (state.settings) {
+        blurIntensity = state.settings.blurIntensity || 5;
+        highlightColor = state.settings.highlightColor || '#FFFF00';
+        highlightOpacity = state.settings.highlightOpacity || 0.5;
+        updateBlurStyle();
 
-  // Apply highlighted elements
-  console.log('[Blurt-ool] Applying', state.highlighted?.length || 0, 'highlighted elements');
-  state.highlighted?.forEach(selector => {
-    try {
-      const elements = document.querySelectorAll(selector);
-      console.log('[Blurt-ool] Selector', selector, 'matched', elements.length, 'elements');
-      elements.forEach(el => el.classList.add('highlighted'));
-    } catch (e) {
-      console.warn('[Blurt-ool] Invalid selector:', selector, e);
-    }
-  });
+        // Update UI controls
+        const intensitySlider = document.getElementById('toolbar-blur-intensity');
+        const colorPicker = document.getElementById('toolbar-color-picker');
+        if (intensitySlider) intensitySlider.value = blurIntensity;
+        if (colorPicker) colorPicker.value = highlightColor;
+      }
 
-  // Apply blur regions
-  state.regions?.forEach(regionData => {
-    const region = document.createElement('div');
-    region.className = 'blur-region';
-    region.style.left = regionData.left;
-    region.style.top = regionData.top;
-    region.style.width = regionData.width;
-    region.style.height = regionData.height;
-    document.body.appendChild(region);
-  });
+      let appliedCount = 0;
+      let failedCount = 0;
 
-  // Apply highlight regions
-  state.highlightRegions?.forEach(regionData => {
-    const region = document.createElement('div');
-    region.className = 'highlight-region';
-    region.style.left = regionData.left;
-    region.style.top = regionData.top;
-    region.style.width = regionData.width;
-    region.style.height = regionData.height;
-    document.body.appendChild(region);
-  });
-
-  // Apply text blurs (best effort - may not work if page structure changed)
-  console.log('[Blurt-ool] Applying', state.textBlurs?.length || 0, 'text blurs');
-  state.textBlurs?.forEach(textData => {
-    try {
-      const parents = document.querySelectorAll(textData.parentSelector);
-      console.log('[Blurt-ool] Text blur parent selector', textData.parentSelector, 'matched', parents.length, 'parents');
-      parents.forEach(parent => {
-        // Find text nodes containing the blurred text
-        const walker = document.createTreeWalker(parent, NodeFilter.SHOW_TEXT, null, false);
-        let node;
-        while (node = walker.nextNode()) {
-          if (node.textContent.includes(textData.textContent)) {
-            // Found the text, wrap it in a span
-            const range = document.createRange();
-            const startIndex = node.textContent.indexOf(textData.textContent);
-            if (startIndex !== -1) {
-              try {
-                range.setStart(node, startIndex);
-                range.setEnd(node, startIndex + textData.textContent.length);
-                const span = document.createElement('span');
-                span.className = 'blur-text';
-                range.surroundContents(span);
-                break; // Found and wrapped, move to next textData
-              } catch (e) {
-                // Range might span multiple nodes, skip
-                console.warn('Could not restore text blur:', e);
-              }
-            }
+      // Apply blurred elements
+      console.log('[Blurt-ool] Applying', state.blurred?.length || 0, 'blurred elements');
+      state.blurred?.forEach(selector => {
+        try {
+          const elements = document.querySelectorAll(selector);
+          console.log('[Blurt-ool] Selector', selector, 'matched', elements.length, 'elements');
+          if (elements.length > 0) {
+            elements.forEach(el => {
+              el.classList.add('blurred');
+              appliedCount++;
+            });
+          } else {
+            failedCount++;
+            console.warn('[Blurt-ool] Selector matched 0 elements:', selector);
           }
+        } catch (e) {
+          failedCount++;
+          console.warn('[Blurt-ool] Invalid selector:', selector, e);
         }
       });
-    } catch (e) {
-      console.warn('Error restoring text blur:', e);
-    }
-  });
 
-  // Apply text highlights (best effort - may not work if page structure changed)
-  console.log('[Blurt-ool] Applying', state.textHighlights?.length || 0, 'text highlights');
-  state.textHighlights?.forEach(textData => {
-    try {
-      const parents = document.querySelectorAll(textData.parentSelector);
-      console.log('[Blurt-ool] Text highlight parent selector', textData.parentSelector, 'matched', parents.length, 'parents');
-      parents.forEach(parent => {
-        // Find text nodes containing the highlighted text
-        const walker = document.createTreeWalker(parent, NodeFilter.SHOW_TEXT, null, false);
-        let node;
-        while (node = walker.nextNode()) {
-          if (node.textContent.includes(textData.textContent)) {
-            // Found the text, wrap it in a span
-            const range = document.createRange();
-            const startIndex = node.textContent.indexOf(textData.textContent);
-            if (startIndex !== -1) {
-              try {
-                range.setStart(node, startIndex);
-                range.setEnd(node, startIndex + textData.textContent.length);
-                const span = document.createElement('span');
-                span.className = 'highlight-text';
-                range.surroundContents(span);
-                break; // Found and wrapped, move to next textData
-              } catch (e) {
-                // Range might span multiple nodes, skip
-                console.warn('Could not restore text highlight:', e);
-              }
-            }
+      console.log(`[Blurt-ool] Applied ${appliedCount} blurred elements, ${failedCount} failed`);
+
+      // Apply highlighted elements
+      console.log('[Blurt-ool] Applying', state.highlighted?.length || 0, 'highlighted elements');
+      state.highlighted?.forEach(selector => {
+        try {
+          const elements = document.querySelectorAll(selector);
+          console.log('[Blurt-ool] Selector', selector, 'matched', elements.length, 'elements');
+          if (elements.length > 0) {
+            elements.forEach(el => {
+              el.classList.add('highlighted');
+              appliedCount++;
+            });
+          } else {
+            failedCount++;
+            console.warn('[Blurt-ool] Highlight selector matched 0 elements:', selector);
           }
+        } catch (e) {
+          failedCount++;
+          console.warn('[Blurt-ool] Invalid highlight selector:', selector, e);
         }
       });
-    } catch (e) {
-      console.warn('Error restoring text highlight:', e);
+
+      // Apply blur regions
+      state.regions?.forEach(regionData => {
+        const region = document.createElement('div');
+        region.className = 'blur-region';
+        region.style.left = regionData.left;
+        region.style.top = regionData.top;
+        region.style.width = regionData.width;
+        region.style.height = regionData.height;
+        document.body.appendChild(region);
+        appliedCount++;
+      });
+
+      // Apply highlight regions
+      state.highlightRegions?.forEach(regionData => {
+        const region = document.createElement('div');
+        region.className = 'highlight-region';
+        region.style.left = regionData.left;
+        region.style.top = regionData.top;
+        region.style.width = regionData.width;
+        region.style.height = regionData.height;
+        document.body.appendChild(region);
+        appliedCount++;
+      });
+
+      // Apply text blurs (best effort - may not work if page structure changed)
+      console.log('[Blurt-ool] Applying', state.textBlurs?.length || 0, 'text blurs');
+      state.textBlurs?.forEach(textData => {
+        try {
+          const parents = document.querySelectorAll(textData.parentSelector);
+          console.log('[Blurt-ool] Text blur parent selector', textData.parentSelector, 'matched', parents.length, 'parents');
+          parents.forEach(parent => {
+            // Find text nodes containing the blurred text
+            const walker = document.createTreeWalker(parent, NodeFilter.SHOW_TEXT, null, false);
+            let node;
+            while (node = walker.nextNode()) {
+              if (node.textContent.includes(textData.textContent)) {
+                // Found the text, wrap it in a span
+                const range = document.createRange();
+                const startIndex = node.textContent.indexOf(textData.textContent);
+                if (startIndex !== -1) {
+                  try {
+                    range.setStart(node, startIndex);
+                    range.setEnd(node, startIndex + textData.textContent.length);
+                    const span = document.createElement('span');
+                    span.className = 'blur-text';
+                    range.surroundContents(span);
+                    appliedCount++;
+                    break; // Found and wrapped, move to next textData
+                  } catch (e) {
+                    // Range might span multiple nodes, skip
+                    console.warn('Could not restore text blur:', e);
+                  }
+                }
+              }
+            }
+          });
+        } catch (e) {
+          console.warn('Error restoring text blur:', e);
+        }
+      });
+
+      // Apply text highlights (best effort - may not work if page structure changed)
+      console.log('[Blurt-ool] Applying', state.textHighlights?.length || 0, 'text highlights');
+      state.textHighlights?.forEach(textData => {
+        try {
+          const parents = document.querySelectorAll(textData.parentSelector);
+          console.log('[Blurt-ool] Text highlight parent selector', textData.parentSelector, 'matched', parents.length, 'parents');
+          parents.forEach(parent => {
+            // Find text nodes containing the highlighted text
+            const walker = document.createTreeWalker(parent, NodeFilter.SHOW_TEXT, null, false);
+            let node;
+            while (node = walker.nextNode()) {
+              if (node.textContent.includes(textData.textContent)) {
+                // Found the text, wrap it in a span
+                const range = document.createRange();
+                const startIndex = node.textContent.indexOf(textData.textContent);
+                if (startIndex !== -1) {
+                  try {
+                    range.setStart(node, startIndex);
+                    range.setEnd(node, startIndex + textData.textContent.length);
+                    const span = document.createElement('span');
+                    span.className = 'highlight-text';
+                    range.surroundContents(span);
+                    appliedCount++;
+                    break; // Found and wrapped, move to next textData
+                  } catch (e) {
+                    // Range might span multiple nodes, skip
+                    console.warn('Could not restore text highlight:', e);
+                  }
+                }
+              }
+            }
+          });
+        } catch (e) {
+          console.warn('Error restoring text highlight:', e);
+        }
+      });
+
+      // Show summary
+      if (appliedCount > 0 || failedCount > 0) {
+        console.log(`[Blurt-ool] ✅ Applied total: ${appliedCount} items, ❌ Failed: ${failedCount} items`);
+        showNotification(`Restored ${appliedCount} blur/highlight effects`);
+      }
+    } catch (error) {
+      console.error('[Blurt-ool] Error in applySavedState (inner):', error);
     }
   });
-
-  showNotification('Configuration loaded');
 }
 
 async function exportConfiguration() {
@@ -880,6 +1091,13 @@ async function loadCustomPresets() {
 // Save custom presets to storage
 async function saveCustomPresets() {
   try {
+    // Check storage quota before saving
+    const quotaCheck = await checkStorageQuota();
+    if (!quotaCheck.allowed) {
+      showNotification('Cannot save preset: Storage is full. Delete old presets first.', true);
+      return false;
+    }
+
     await chrome.storage.local.set({ customPresets });
     return true;
   } catch (error) {
@@ -1142,6 +1360,9 @@ function showPresetsManager() {
   loadCustomPresets().then(() => {
     renderCustomPresets(customPresetsContainer);
     customTitle.textContent = `Custom Presets (${customPresets.length})`;
+  }).catch((error) => {
+    console.error('[Blurt-ool] Error loading custom presets:', error);
+    showNotification('Failed to load custom presets', true);
   });
 }
 
@@ -1359,6 +1580,9 @@ function deletePreset(presetId) {
       modal.remove();
       showPresetsManager();
     }
+  }).catch((error) => {
+    console.error('[Blurt-ool] Error deleting preset:', error);
+    showNotification('Failed to delete preset', true);
   });
 }
 
@@ -1399,8 +1623,28 @@ function importPresetsFile() {
         const imported = data.customPresets;
         let added = 0;
         let skipped = 0;
+        let invalid = 0;
 
         imported.forEach(preset => {
+          // Validate preset structure before importing
+          if (!preset || typeof preset !== 'object') {
+            invalid++;
+            return;
+          }
+
+          if (!preset.id || !preset.name || !preset.state || !preset.settings) {
+            console.warn('[Blurt-ool] Skipping invalid preset (missing required fields):', preset);
+            invalid++;
+            return;
+          }
+
+          // Validate preset name
+          if (typeof preset.name !== 'string' || preset.name.length === 0 || preset.name.length > 50) {
+            console.warn('[Blurt-ool] Skipping preset with invalid name:', preset.name);
+            invalid++;
+            return;
+          }
+
           // Check for duplicate by ID to prevent ID collisions
           if (!customPresets.some(p => p.id === preset.id)) {
             customPresets.push(preset);
@@ -1411,7 +1655,11 @@ function importPresetsFile() {
         });
 
         await saveCustomPresets();
-        showNotification(`📥 Imported ${added} presets${skipped > 0 ? `, skipped ${skipped} duplicates` : ''}`);
+
+        let message = `📥 Imported ${added} presets`;
+        if (skipped > 0) message += `, skipped ${skipped} duplicates`;
+        if (invalid > 0) message += `, rejected ${invalid} invalid`;
+        showNotification(message);
 
         // Refresh manager
         const modal = document.getElementById('blur-presets-manager');
@@ -1497,24 +1745,29 @@ function setupToolbarEventListeners() {
   // Select element button
   if (selectBtn) {
     selectBtn.addEventListener('click', async () => {
-      // Check premium access (with trial support)
-      const access = await window.LicenseManager.canUsePremiumFeature(true);
+      try {
+        // Check premium access (with trial support)
+        const access = await window.LicenseManager.canUsePremiumFeature(true);
 
-      if (!access.allowed) {
-        window.PremiumUI.showPremiumModal();
-        return;
+        if (!access.allowed) {
+          window.PremiumUI.showPremiumModal();
+          return;
+        }
+
+        // Show trial reminder if using trial
+        if (access.reason === 'trial') {
+          showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+        }
+
+        isSelecting = true;
+        isDrawing = false;
+        isSelectingText = false;
+        updateBlurStyle(); // Update cursor
+        setActiveTool('toolbar-select-element');
+      } catch (error) {
+        console.error('[Blurt-ool] Error in select element handler:', error);
+        showNotification('Error activating element selection', true);
       }
-
-      // Show trial reminder if using trial
-      if (access.reason === 'trial') {
-        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
-      }
-
-      isSelecting = true;
-      isDrawing = false;
-      isSelectingText = false;
-      updateBlurStyle(); // Update cursor
-      setActiveTool('toolbar-select-element');
     });
   }
 
@@ -1522,77 +1775,87 @@ function setupToolbarEventListeners() {
   const selectTextBtn = document.getElementById('toolbar-select-text');
   if (selectTextBtn) {
     selectTextBtn.addEventListener('click', async () => {
-      // Check premium access (with trial support)
-      const access = await window.LicenseManager.canUsePremiumFeature(true);
+      try {
+        // Check premium access (with trial support)
+        const access = await window.LicenseManager.canUsePremiumFeature(true);
 
-      if (!access.allowed) {
-        window.PremiumUI.showPremiumModal();
-        return;
+        if (!access.allowed) {
+          window.PremiumUI.showPremiumModal();
+          return;
+        }
+
+        // Show trial reminder if using trial
+        if (access.reason === 'trial') {
+          showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+        }
+
+        isSelectingText = true;
+        isSelecting = false;
+        isDrawing = false;
+        originalUserSelect = getComputedStyle(document.body).userSelect;
+        document.body.style.userSelect = 'text';
+        updateBlurStyle(); // Update cursor
+        setActiveTool('toolbar-select-text');
+      } catch (error) {
+        console.error('[Blurt-ool] Error in select text handler:', error);
+        showNotification('Error activating text selection', true);
       }
-
-      // Show trial reminder if using trial
-      if (access.reason === 'trial') {
-        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
-      }
-
-      isSelectingText = true;
-      isSelecting = false;
-      isDrawing = false;
-      originalUserSelect = getComputedStyle(document.body).userSelect;
-      document.body.style.userSelect = 'text';
-      updateBlurStyle(); // Update cursor
-      setActiveTool('toolbar-select-text');
     });
   }
 
   // Undo button with DOM existence check
   if (undoBtn) {
     undoBtn.addEventListener('click', async () => {
-      // Check premium access (with trial support)
-      const access = await window.LicenseManager.canUsePremiumFeature(true);
+      try {
+        // Check premium access (with trial support)
+        const access = await window.LicenseManager.canUsePremiumFeature(true);
 
-      if (!access.allowed) {
-        window.PremiumUI.showPremiumModal();
-        return;
-      }
+        if (!access.allowed) {
+          window.PremiumUI.showPremiumModal();
+          return;
+        }
 
-      // Show trial reminder if using trial
-      if (access.reason === 'trial') {
-        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
-      }
+        // Show trial reminder if using trial
+        if (access.reason === 'trial') {
+          showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+        }
 
-      while (blurHistory.length > 0) {
-        const last = blurHistory.pop();
-        if (!last || !last.element) continue;
+        while (blurHistory.length > 0) {
+          const last = blurHistory.pop();
+          if (!last || !last.element) continue;
 
-        // Check if element still exists in DOM
-        if (!document.body.contains(last.element)) continue;
+          // Check if element still exists in DOM
+          if (!document.body.contains(last.element)) continue;
 
-        if (last.action === 'blurred') {
-          last.element.classList.remove('blurred');
-          redoHistory.push(last);
-          break;
-        } else if (last.action === 'highlighted') {
-          last.element.classList.remove('highlighted');
-          redoHistory.push(last);
-          break;
-        } else if (last.action === 'region' || last.action === 'highlight-region') {
-          if (last.element.parentNode) {
-            last.element.remove();
+          if (last.action === 'blurred') {
+            last.element.classList.remove('blurred');
             redoHistory.push(last);
             break;
-          }
-        } else if (last.action === 'text-blur' || last.action === 'text-highlight') {
-          const span = last.element;
-          if (span.parentNode) {
-            while (span.firstChild) {
-              span.parentNode.insertBefore(span.firstChild, span);
+          } else if (last.action === 'highlighted') {
+            last.element.classList.remove('highlighted');
+            redoHistory.push(last);
+            break;
+          } else if (last.action === 'region' || last.action === 'highlight-region') {
+            if (last.element.parentNode) {
+              last.element.remove();
+              redoHistory.push(last);
+              break;
             }
-            span.remove();
-            redoHistory.push(last);
-            break;
+          } else if (last.action === 'text-blur' || last.action === 'text-highlight') {
+            const span = last.element;
+            if (span.parentNode) {
+              while (span.firstChild) {
+                span.parentNode.insertBefore(span.firstChild, span);
+              }
+              span.remove();
+              redoHistory.push(last);
+              break;
+            }
           }
         }
+      } catch (error) {
+        console.error('[Blurt-ool] Error in undo handler:', error);
+        showNotification('Error performing undo', true);
       }
     });
   }
@@ -1600,33 +1863,38 @@ function setupToolbarEventListeners() {
   // Redo button
   if (redoBtn) {
     redoBtn.addEventListener('click', async () => {
-      // Check premium access (with trial support)
-      const access = await window.LicenseManager.canUsePremiumFeature(true);
+      try {
+        // Check premium access (with trial support)
+        const access = await window.LicenseManager.canUsePremiumFeature(true);
 
-      if (!access.allowed) {
-        window.PremiumUI.showPremiumModal();
-        return;
-      }
-
-      // Show trial reminder if using trial
-      if (access.reason === 'trial') {
-        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
-      }
-
-      if (redoHistory.length > 0) {
-        const action = redoHistory.pop();
-        if (!action || !action.element) return;
-
-        if (action.action === 'blurred') {
-          action.element.classList.add('blurred');
-          blurHistory.push(action);
-        } else if (action.action === 'highlighted') {
-          action.element.classList.add('highlighted');
-          blurHistory.push(action);
-        } else if (action.action === 'region' || action.action === 'highlight-region') {
-          document.body.appendChild(action.element);
-          blurHistory.push(action);
+        if (!access.allowed) {
+          window.PremiumUI.showPremiumModal();
+          return;
         }
+
+        // Show trial reminder if using trial
+        if (access.reason === 'trial') {
+          showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+        }
+
+        if (redoHistory.length > 0) {
+          const action = redoHistory.pop();
+          if (!action || !action.element) return;
+
+          if (action.action === 'blurred') {
+            action.element.classList.add('blurred');
+            blurHistory.push(action);
+          } else if (action.action === 'highlighted') {
+            action.element.classList.add('highlighted');
+            blurHistory.push(action);
+          } else if (action.action === 'region' || action.action === 'highlight-region') {
+            document.body.appendChild(action.element);
+            blurHistory.push(action);
+          }
+        }
+      } catch (error) {
+        console.error('[Blurt-ool] Error in redo handler:', error);
+        showNotification('Error performing redo', true);
       }
     });
   }
@@ -1634,37 +1902,47 @@ function setupToolbarEventListeners() {
   // Draw region button
   if (drawBtn) {
     drawBtn.addEventListener('click', async () => {
-      // Check premium access (with trial support)
-      const access = await window.LicenseManager.canUsePremiumFeature(true);
+      try {
+        // Check premium access (with trial support)
+        const access = await window.LicenseManager.canUsePremiumFeature(true);
 
-      if (!access.allowed) {
-        window.PremiumUI.showPremiumModal();
-        return;
+        if (!access.allowed) {
+          window.PremiumUI.showPremiumModal();
+          return;
+        }
+
+        // Show trial reminder if using trial
+        if (access.reason === 'trial') {
+          showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+        }
+
+        isDrawing = true;
+        isSelecting = false;
+        isSelectingText = false;
+        createOverlay();
+        updateBlurStyle(); // Update cursor
+        setActiveTool('toolbar-draw-region');
+      } catch (error) {
+        console.error('[Blurt-ool] Error in draw region handler:', error);
+        showNotification('Error activating draw region mode', true);
       }
-
-      // Show trial reminder if using trial
-      if (access.reason === 'trial') {
-        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
-      }
-
-      isDrawing = true;
-      isSelecting = false;
-      isSelectingText = false;
-      createOverlay();
-      updateBlurStyle(); // Update cursor
-      setActiveTool('toolbar-draw-region');
     });
   }
 
   // Clear all button
   if (clearBtn) {
     clearBtn.addEventListener('click', async () => {
-      // Clear DOM and also delete saved state (true = clear storage)
-      await clearAllBlurs(true);
-      blurHistory = [];
-      redoHistory = [];
-      removeOverlay();
-      showNotification('All blur/highlight effects cleared');
+      try {
+        // Clear DOM and also delete saved state (true = clear storage)
+        await clearAllBlurs(true);
+        blurHistory = [];
+        redoHistory = [];
+        removeOverlay();
+        showNotification('All blur/highlight effects cleared');
+      } catch (error) {
+        console.error('[Blurt-ool] Error clearing blur effects:', error);
+        showNotification('Error clearing blur effects', true);
+      }
     });
   }
 
@@ -1698,6 +1976,9 @@ function setupToolbarEventListeners() {
       } else {
         premiumBtn.title = 'Upgrade to Premium';
       }
+    }).catch((error) => {
+      console.error('[Blurt-ool] Error checking premium status:', error);
+      premiumBtn.title = 'Upgrade to Premium';
     });
 
     premiumBtn.addEventListener('click', () => {
@@ -1722,67 +2003,87 @@ function setupToolbarEventListeners() {
   // Load configuration button
   if (loadBtn) {
     loadBtn.addEventListener('click', async () => {
-      await loadSavedState();
+      try {
+        await loadSavedState();
+      } catch (error) {
+        console.error('[Blurt-ool] Error in load button handler:', error);
+        showNotification('Error loading configuration', true);
+      }
     });
   }
 
   // Export configuration button
   if (exportBtn) {
     exportBtn.addEventListener('click', async () => {
-      // Check premium access (with trial support)
-      const access = await window.LicenseManager.canUsePremiumFeature(true);
+      try {
+        // Check premium access (with trial support)
+        const access = await window.LicenseManager.canUsePremiumFeature(true);
 
-      if (!access.allowed) {
-        window.PremiumUI.showPremiumModal();
-        return;
+        if (!access.allowed) {
+          window.PremiumUI.showPremiumModal();
+          return;
+        }
+
+        // Show trial reminder if using trial
+        if (access.reason === 'trial') {
+          showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+        }
+
+        exportConfiguration();
+      } catch (error) {
+        console.error('[Blurt-ool] Error in export button handler:', error);
+        showNotification('Error exporting configuration', true);
       }
-
-      // Show trial reminder if using trial
-      if (access.reason === 'trial') {
-        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
-      }
-
-      exportConfiguration();
     });
   }
 
   // Import configuration button
   if (importBtn) {
     importBtn.addEventListener('click', async () => {
-      // Check premium access (with trial support)
-      const access = await window.LicenseManager.canUsePremiumFeature(true);
+      try {
+        // Check premium access (with trial support)
+        const access = await window.LicenseManager.canUsePremiumFeature(true);
 
-      if (!access.allowed) {
-        window.PremiumUI.showPremiumModal();
-        return;
+        if (!access.allowed) {
+          window.PremiumUI.showPremiumModal();
+          return;
+        }
+
+        // Show trial reminder if using trial
+        if (access.reason === 'trial') {
+          showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+        }
+
+        importConfiguration();
+      } catch (error) {
+        console.error('[Blurt-ool] Error in import button handler:', error);
+        showNotification('Error importing configuration', true);
       }
-
-      // Show trial reminder if using trial
-      if (access.reason === 'trial') {
-        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
-      }
-
-      importConfiguration();
     });
   }
 
   // Blur presets manager
   if (presetsBtn) {
     presetsBtn.addEventListener('click', async () => {
-      // Check premium access (with trial support)
-      const access = await window.LicenseManager.canUsePremiumFeature(true);
+      try {
+        // Check premium access (with trial support)
+        const access = await window.LicenseManager.canUsePremiumFeature(true);
 
-      if (!access.allowed) {
-        window.PremiumUI.showPremiumModal();
-        return;
+        if (!access.allowed) {
+          window.PremiumUI.showPremiumModal();
+          return;
+        }
+
+        // Show trial reminder if using trial
+        if (access.reason === 'trial') {
+          showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+        }
+
+        showPresetsManager();
+      } catch (error) {
+        console.error('[Blurt-ool] Error opening presets manager:', error);
+        showNotification('Error opening presets manager', true);
       }
-
-      // Show trial reminder if using trial
-      if (access.reason === 'trial') {
-        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
-      }
-
-      showPresetsManager();
     });
   }
 
@@ -1791,25 +2092,26 @@ function setupToolbarEventListeners() {
 
   if (quickSelectBtn) {
     quickSelectBtn.addEventListener('click', async () => {
-      // Check premium access WITHOUT consuming trial (just check)
-      const access = await window.LicenseManager.canUsePremiumFeature(false);
+      try {
+        // Check premium access WITHOUT consuming trial (just check)
+        const access = await window.LicenseManager.canUsePremiumFeature(false);
 
-      if (!access.allowed) {
-        window.PremiumUI.showPremiumModal();
-        return;
-      }
+        if (!access.allowed) {
+          window.PremiumUI.showPremiumModal();
+          return;
+        }
 
-      // Remove existing menu if any
-      const existingMenu = document.getElementById('quick-select-menu');
-      if (existingMenu) {
-        existingMenu.remove();
-      }
+        // Remove existing menu if any
+        const existingMenu = document.getElementById('quick-select-menu');
+        if (existingMenu) {
+          existingMenu.remove();
+        }
 
-      // Clean up previous event listener if any
-      if (quickSelectCloseListener) {
-        document.removeEventListener('click', quickSelectCloseListener);
-        quickSelectCloseListener = null;
-      }
+        // Clean up previous event listener if any
+        if (quickSelectCloseListener) {
+          document.removeEventListener('click', quickSelectCloseListener);
+          quickSelectCloseListener = null;
+        }
 
       const menu = document.createElement('div');
       menu.id = 'quick-select-menu';
@@ -1895,6 +2197,10 @@ function setupToolbarEventListeners() {
         };
         document.addEventListener('click', quickSelectCloseListener);
       }, 100);
+      } catch (error) {
+        console.error('[Blurt-ool] Error in quick select handler:', error);
+        showNotification('Error showing quick select menu', true);
+      }
     });
   }
 
@@ -2397,25 +2703,106 @@ window.addEventListener('message', async (event) => {
 });
 
 // Initialize auto-load - Keep Blur is always enabled
-// This runs when the page loads
+// This runs when the page loads with smart retry logic
 (async function initAutoLoad() {
   try {
-    // Wait for DOM to be ready
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', async () => {
-        // Extra delay to ensure dynamic content is loaded
-        setTimeout(async () => {
-          console.log('[Blurt-ool] Auto-loading saved state (after DOMContentLoaded)');
-          await loadSavedState(false); // Don't show "no config" notification
-        }, 1000);
-      });
-    } else {
-      // DOM already ready, wait a bit for dynamic content
-      setTimeout(async () => {
-        console.log('[Blurt-ool] Auto-loading saved state (DOM already ready)');
-        await loadSavedState(false); // Don't show "no config" notification
-      }, 1000);
-    }
+    let loadAttempted = false;
+    let retryCount = 0;
+    const maxRetries = 3;
+    const retryDelay = 1000; // Retry every 1 second
+
+    // Function to attempt loading state with retry logic
+    const attemptLoad = async (isRetry = false) => {
+      if (loadAttempted && !isRetry) return;
+
+      try {
+        console.log(`[Blurt-ool] Auto-loading saved state (attempt ${retryCount + 1})`);
+
+        const success = await loadSavedState(false); // Don't show "no config" notification
+
+        if (success) {
+          loadAttempted = true;
+          console.log('[Blurt-ool] Auto-load successful!');
+
+          // Show subtle visual feedback that blur was restored
+          const toolbar = document.getElementById('blur-toolbar');
+          if (toolbar) {
+            toolbar.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.5)';
+            setTimeout(() => {
+              toolbar.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+            }, 1000);
+          }
+        } else if (retryCount < maxRetries && !loadAttempted) {
+          // No config found, but let's retry in case page is still loading
+          retryCount++;
+          console.log(`[Blurt-ool] No config found, retrying in ${retryDelay}ms...`);
+          setTimeout(() => attemptLoad(true), retryDelay);
+        }
+      } catch (error) {
+        console.error('[Blurt-ool] Error during auto-load:', error);
+
+        // Retry on error
+        if (retryCount < maxRetries && !loadAttempted) {
+          retryCount++;
+          console.log(`[Blurt-ool] Auto-load failed, retrying in ${retryDelay}ms...`);
+          setTimeout(() => attemptLoad(true), retryDelay);
+        }
+      }
+    };
+
+    // Smart detection of when to load
+    const scheduleAutoLoad = () => {
+      if (document.readyState === 'complete') {
+        // Page fully loaded, wait a bit for dynamic content
+        setTimeout(() => attemptLoad(), 800);
+      } else if (document.readyState === 'interactive') {
+        // DOM ready, wait for resources
+        window.addEventListener('load', () => {
+          setTimeout(() => attemptLoad(), 500);
+        }, { once: true });
+      } else {
+        // Still loading, wait for DOM
+        document.addEventListener('DOMContentLoaded', () => {
+          setTimeout(() => attemptLoad(), 800);
+        }, { once: true });
+      }
+    };
+
+    // Start the auto-load process
+    scheduleAutoLoad();
+
+    // Also watch for dynamic content changes and retry if needed
+    // This helps with SPAs and lazy-loaded content
+    let dynamicLoadTimeout = null;
+    const observer = new MutationObserver(() => {
+      if (loadAttempted) {
+        observer.disconnect();
+        return;
+      }
+
+      // Debounce: wait for DOM to stabilize
+      if (dynamicLoadTimeout) {
+        clearTimeout(dynamicLoadTimeout);
+      }
+
+      dynamicLoadTimeout = setTimeout(() => {
+        if (!loadAttempted && retryCount < maxRetries) {
+          console.log('[Blurt-ool] DOM changed, attempting auto-load...');
+          attemptLoad();
+        }
+      }, 2000);
+    });
+
+    // Observe for 10 seconds max
+    observer.observe(document.body || document.documentElement, {
+      childList: true,
+      subtree: true
+    });
+
+    setTimeout(() => {
+      observer.disconnect();
+    }, 10000);
+
   } catch (error) {
     console.error('[Blurt-ool] Error initializing auto-load:', error);
   }
