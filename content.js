@@ -512,21 +512,40 @@ function updateBlurStyle() {
       z-index: ${Z_INDEX_MAX} !important;
       pointer-events: auto !important;
       filter: none !important;
-      all: initial !important;
+      backdrop-filter: none !important;
+      transform: none !important;
+      opacity: 1 !important;
+      visibility: visible !important;
       box-sizing: border-box !important;
       line-height: normal !important;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+      font-size: 14px !important;
+      font-weight: normal !important;
+      letter-spacing: normal !important;
+      text-transform: none !important;
+      text-decoration: none !important;
+      color: #333 !important;
+      background: none !important;
     }
     #blur-toolbar-container *,
     #blur-toolbar,
     #blur-toolbar * {
-      all: revert !important;
       filter: none !important;
+      backdrop-filter: none !important;
+      transform: none !important;
       pointer-events: auto !important;
       box-sizing: border-box !important;
       line-height: normal !important;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+      font-size: inherit !important;
+      font-weight: inherit !important;
+      letter-spacing: normal !important;
+      text-transform: none !important;
+      text-decoration: none !important;
       color: inherit !important;
+      text-shadow: none !important;
+      opacity: 1 !important;
+      visibility: visible !important;
     }
     #blur-mode-overlay {
       position: fixed;
