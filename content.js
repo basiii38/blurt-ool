@@ -102,12 +102,74 @@ async function saveAsPreset(name, description = '') {
 async function applyPreset(preset) {
   // Validate preset structure
   if (!preset || typeof preset !== 'object') {
+    console.error('[Blurt-ool] Invalid preset: not an object');
     showNotification('❌ Invalid preset data', true);
     return;
   }
 
-  if (!preset.settings || !preset.state) {
-    showNotification('❌ Incomplete preset data', true);
+  if (!preset.settings || typeof preset.settings !== 'object') {
+    console.error('[Blurt-ool] Invalid preset: missing or invalid settings');
+    showNotification('❌ Incomplete preset data (missing settings)', true);
+    return;
+  }
+
+  if (!preset.state || typeof preset.state !== 'object') {
+    console.error('[Blurt-ool] Invalid preset: missing or invalid state');
+    showNotification('❌ Incomplete preset data (missing state)', true);
+    return;
+  }
+
+  // Validate settings values
+  if (preset.settings.blurIntensity !== undefined) {
+    const intensity = Number(preset.settings.blurIntensity);
+    if (isNaN(intensity) || intensity < 0 || intensity > 50) {
+      console.error('[Blurt-ool] Invalid blur intensity:', preset.settings.blurIntensity);
+      showNotification('❌ Invalid blur intensity in preset', true);
+      return;
+    }
+  }
+
+  if (preset.settings.highlightOpacity !== undefined) {
+    const opacity = Number(preset.settings.highlightOpacity);
+    if (isNaN(opacity) || opacity < 0 || opacity > 1) {
+      console.error('[Blurt-ool] Invalid highlight opacity:', preset.settings.highlightOpacity);
+      showNotification('❌ Invalid highlight opacity in preset', true);
+      return;
+    }
+  }
+
+  if (preset.settings.highlightColor !== undefined) {
+    const color = String(preset.settings.highlightColor);
+    // Basic hex color validation
+    if (!/^#[0-9A-Fa-f]{6}$/.test(color)) {
+      console.error('[Blurt-ool] Invalid highlight color:', preset.settings.highlightColor);
+      showNotification('❌ Invalid highlight color in preset', true);
+      return;
+    }
+  }
+
+  // Validate state arrays
+  if (preset.state.blurred && !Array.isArray(preset.state.blurred)) {
+    console.error('[Blurt-ool] Invalid state: blurred is not an array');
+    showNotification('❌ Invalid preset state format', true);
+    return;
+  }
+
+  if (preset.state.highlighted && !Array.isArray(preset.state.highlighted)) {
+    console.error('[Blurt-ool] Invalid state: highlighted is not an array');
+    showNotification('❌ Invalid preset state format', true);
+    return;
+  }
+
+  if (preset.state.regions && !Array.isArray(preset.state.regions)) {
+    console.error('[Blurt-ool] Invalid state: regions is not an array');
+    showNotification('❌ Invalid preset state format', true);
+    return;
+  }
+
+  if (preset.state.highlightRegions && !Array.isArray(preset.state.highlightRegions)) {
+    console.error('[Blurt-ool] Invalid state: highlightRegions is not an array');
+    showNotification('❌ Invalid preset state format', true);
     return;
   }
 
@@ -345,6 +407,31 @@ function getCurrentDomain() {
   return window.location.hostname;
 }
 
+// Check storage quota and warn if approaching limit
+async function checkStorageQuota() {
+  try {
+    const result = await chrome.storage.local.get(null);
+    const dataSize = JSON.stringify(result).length;
+    // Chrome local storage limit is approximately 10MB (10485760 bytes)
+    const maxSize = 10485760;
+    const warningThreshold = maxSize * 0.8; // Warn at 80%
+    const criticalThreshold = maxSize * 0.95; // Critical at 95%
+
+    if (dataSize >= criticalThreshold) {
+      showNotification('⚠️ Storage almost full! Delete old presets to free up space.', true);
+      return { allowed: false, percentage: (dataSize / maxSize) * 100, size: dataSize };
+    } else if (dataSize >= warningThreshold) {
+      showNotification('⚠️ Storage usage high. Consider deleting old presets.', false);
+      return { allowed: true, percentage: (dataSize / maxSize) * 100, size: dataSize };
+    }
+
+    return { allowed: true, percentage: (dataSize / maxSize) * 100, size: dataSize };
+  } catch (error) {
+    console.error('[Blurt-ool] Error checking storage quota:', error);
+    return { allowed: true, percentage: 0, size: 0 };
+  }
+}
+
 function serializeBlurState() {
   const state = {
     blurred: [],
@@ -460,6 +547,15 @@ async function saveCurrentState(silent = false) {
   console.log('[Blurt-ool] Saving state for', domain, ':', state);
 
   try {
+    // Check storage quota before saving
+    const quotaCheck = await checkStorageQuota();
+    if (!quotaCheck.allowed) {
+      if (!silent) {
+        showNotification('Cannot save: Storage is full. Delete old presets first.', true);
+      }
+      return false;
+    }
+
     const result = await chrome.storage.local.get(['blurConfigs']);
     const configs = result.blurConfigs || {};
     configs[domain] = state;
@@ -468,11 +564,13 @@ async function saveCurrentState(silent = false) {
     if (!silent) {
       showNotification('Configuration saved for ' + domain);
     }
+    return true;
   } catch (error) {
     console.error('[Blurt-ool] Error saving state:', error);
     if (!silent) {
       showNotification('Error saving configuration', true);
     }
+    return false;
   }
 }
 
@@ -880,6 +978,13 @@ async function loadCustomPresets() {
 // Save custom presets to storage
 async function saveCustomPresets() {
   try {
+    // Check storage quota before saving
+    const quotaCheck = await checkStorageQuota();
+    if (!quotaCheck.allowed) {
+      showNotification('Cannot save preset: Storage is full. Delete old presets first.', true);
+      return false;
+    }
+
     await chrome.storage.local.set({ customPresets });
     return true;
   } catch (error) {
@@ -1142,6 +1247,9 @@ function showPresetsManager() {
   loadCustomPresets().then(() => {
     renderCustomPresets(customPresetsContainer);
     customTitle.textContent = `Custom Presets (${customPresets.length})`;
+  }).catch((error) => {
+    console.error('[Blurt-ool] Error loading custom presets:', error);
+    showNotification('Failed to load custom presets', true);
   });
 }
 
@@ -1359,6 +1467,9 @@ function deletePreset(presetId) {
       modal.remove();
       showPresetsManager();
     }
+  }).catch((error) => {
+    console.error('[Blurt-ool] Error deleting preset:', error);
+    showNotification('Failed to delete preset', true);
   });
 }
 
@@ -1399,8 +1510,28 @@ function importPresetsFile() {
         const imported = data.customPresets;
         let added = 0;
         let skipped = 0;
+        let invalid = 0;
 
         imported.forEach(preset => {
+          // Validate preset structure before importing
+          if (!preset || typeof preset !== 'object') {
+            invalid++;
+            return;
+          }
+
+          if (!preset.id || !preset.name || !preset.state || !preset.settings) {
+            console.warn('[Blurt-ool] Skipping invalid preset (missing required fields):', preset);
+            invalid++;
+            return;
+          }
+
+          // Validate preset name
+          if (typeof preset.name !== 'string' || preset.name.length === 0 || preset.name.length > 50) {
+            console.warn('[Blurt-ool] Skipping preset with invalid name:', preset.name);
+            invalid++;
+            return;
+          }
+
           // Check for duplicate by ID to prevent ID collisions
           if (!customPresets.some(p => p.id === preset.id)) {
             customPresets.push(preset);
@@ -1411,7 +1542,11 @@ function importPresetsFile() {
         });
 
         await saveCustomPresets();
-        showNotification(`📥 Imported ${added} presets${skipped > 0 ? `, skipped ${skipped} duplicates` : ''}`);
+
+        let message = `📥 Imported ${added} presets`;
+        if (skipped > 0) message += `, skipped ${skipped} duplicates`;
+        if (invalid > 0) message += `, rejected ${invalid} invalid`;
+        showNotification(message);
 
         // Refresh manager
         const modal = document.getElementById('blur-presets-manager');
@@ -1497,24 +1632,29 @@ function setupToolbarEventListeners() {
   // Select element button
   if (selectBtn) {
     selectBtn.addEventListener('click', async () => {
-      // Check premium access (with trial support)
-      const access = await window.LicenseManager.canUsePremiumFeature(true);
+      try {
+        // Check premium access (with trial support)
+        const access = await window.LicenseManager.canUsePremiumFeature(true);
 
-      if (!access.allowed) {
-        window.PremiumUI.showPremiumModal();
-        return;
+        if (!access.allowed) {
+          window.PremiumUI.showPremiumModal();
+          return;
+        }
+
+        // Show trial reminder if using trial
+        if (access.reason === 'trial') {
+          showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+        }
+
+        isSelecting = true;
+        isDrawing = false;
+        isSelectingText = false;
+        updateBlurStyle(); // Update cursor
+        setActiveTool('toolbar-select-element');
+      } catch (error) {
+        console.error('[Blurt-ool] Error in select element handler:', error);
+        showNotification('Error activating element selection', true);
       }
-
-      // Show trial reminder if using trial
-      if (access.reason === 'trial') {
-        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
-      }
-
-      isSelecting = true;
-      isDrawing = false;
-      isSelectingText = false;
-      updateBlurStyle(); // Update cursor
-      setActiveTool('toolbar-select-element');
     });
   }
 
@@ -1522,77 +1662,87 @@ function setupToolbarEventListeners() {
   const selectTextBtn = document.getElementById('toolbar-select-text');
   if (selectTextBtn) {
     selectTextBtn.addEventListener('click', async () => {
-      // Check premium access (with trial support)
-      const access = await window.LicenseManager.canUsePremiumFeature(true);
+      try {
+        // Check premium access (with trial support)
+        const access = await window.LicenseManager.canUsePremiumFeature(true);
 
-      if (!access.allowed) {
-        window.PremiumUI.showPremiumModal();
-        return;
+        if (!access.allowed) {
+          window.PremiumUI.showPremiumModal();
+          return;
+        }
+
+        // Show trial reminder if using trial
+        if (access.reason === 'trial') {
+          showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+        }
+
+        isSelectingText = true;
+        isSelecting = false;
+        isDrawing = false;
+        originalUserSelect = getComputedStyle(document.body).userSelect;
+        document.body.style.userSelect = 'text';
+        updateBlurStyle(); // Update cursor
+        setActiveTool('toolbar-select-text');
+      } catch (error) {
+        console.error('[Blurt-ool] Error in select text handler:', error);
+        showNotification('Error activating text selection', true);
       }
-
-      // Show trial reminder if using trial
-      if (access.reason === 'trial') {
-        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
-      }
-
-      isSelectingText = true;
-      isSelecting = false;
-      isDrawing = false;
-      originalUserSelect = getComputedStyle(document.body).userSelect;
-      document.body.style.userSelect = 'text';
-      updateBlurStyle(); // Update cursor
-      setActiveTool('toolbar-select-text');
     });
   }
 
   // Undo button with DOM existence check
   if (undoBtn) {
     undoBtn.addEventListener('click', async () => {
-      // Check premium access (with trial support)
-      const access = await window.LicenseManager.canUsePremiumFeature(true);
+      try {
+        // Check premium access (with trial support)
+        const access = await window.LicenseManager.canUsePremiumFeature(true);
 
-      if (!access.allowed) {
-        window.PremiumUI.showPremiumModal();
-        return;
-      }
+        if (!access.allowed) {
+          window.PremiumUI.showPremiumModal();
+          return;
+        }
 
-      // Show trial reminder if using trial
-      if (access.reason === 'trial') {
-        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
-      }
+        // Show trial reminder if using trial
+        if (access.reason === 'trial') {
+          showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+        }
 
-      while (blurHistory.length > 0) {
-        const last = blurHistory.pop();
-        if (!last || !last.element) continue;
+        while (blurHistory.length > 0) {
+          const last = blurHistory.pop();
+          if (!last || !last.element) continue;
 
-        // Check if element still exists in DOM
-        if (!document.body.contains(last.element)) continue;
+          // Check if element still exists in DOM
+          if (!document.body.contains(last.element)) continue;
 
-        if (last.action === 'blurred') {
-          last.element.classList.remove('blurred');
-          redoHistory.push(last);
-          break;
-        } else if (last.action === 'highlighted') {
-          last.element.classList.remove('highlighted');
-          redoHistory.push(last);
-          break;
-        } else if (last.action === 'region' || last.action === 'highlight-region') {
-          if (last.element.parentNode) {
-            last.element.remove();
+          if (last.action === 'blurred') {
+            last.element.classList.remove('blurred');
             redoHistory.push(last);
             break;
-          }
-        } else if (last.action === 'text-blur' || last.action === 'text-highlight') {
-          const span = last.element;
-          if (span.parentNode) {
-            while (span.firstChild) {
-              span.parentNode.insertBefore(span.firstChild, span);
+          } else if (last.action === 'highlighted') {
+            last.element.classList.remove('highlighted');
+            redoHistory.push(last);
+            break;
+          } else if (last.action === 'region' || last.action === 'highlight-region') {
+            if (last.element.parentNode) {
+              last.element.remove();
+              redoHistory.push(last);
+              break;
             }
-            span.remove();
-            redoHistory.push(last);
-            break;
+          } else if (last.action === 'text-blur' || last.action === 'text-highlight') {
+            const span = last.element;
+            if (span.parentNode) {
+              while (span.firstChild) {
+                span.parentNode.insertBefore(span.firstChild, span);
+              }
+              span.remove();
+              redoHistory.push(last);
+              break;
+            }
           }
         }
+      } catch (error) {
+        console.error('[Blurt-ool] Error in undo handler:', error);
+        showNotification('Error performing undo', true);
       }
     });
   }
@@ -1600,33 +1750,38 @@ function setupToolbarEventListeners() {
   // Redo button
   if (redoBtn) {
     redoBtn.addEventListener('click', async () => {
-      // Check premium access (with trial support)
-      const access = await window.LicenseManager.canUsePremiumFeature(true);
+      try {
+        // Check premium access (with trial support)
+        const access = await window.LicenseManager.canUsePremiumFeature(true);
 
-      if (!access.allowed) {
-        window.PremiumUI.showPremiumModal();
-        return;
-      }
-
-      // Show trial reminder if using trial
-      if (access.reason === 'trial') {
-        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
-      }
-
-      if (redoHistory.length > 0) {
-        const action = redoHistory.pop();
-        if (!action || !action.element) return;
-
-        if (action.action === 'blurred') {
-          action.element.classList.add('blurred');
-          blurHistory.push(action);
-        } else if (action.action === 'highlighted') {
-          action.element.classList.add('highlighted');
-          blurHistory.push(action);
-        } else if (action.action === 'region' || action.action === 'highlight-region') {
-          document.body.appendChild(action.element);
-          blurHistory.push(action);
+        if (!access.allowed) {
+          window.PremiumUI.showPremiumModal();
+          return;
         }
+
+        // Show trial reminder if using trial
+        if (access.reason === 'trial') {
+          showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+        }
+
+        if (redoHistory.length > 0) {
+          const action = redoHistory.pop();
+          if (!action || !action.element) return;
+
+          if (action.action === 'blurred') {
+            action.element.classList.add('blurred');
+            blurHistory.push(action);
+          } else if (action.action === 'highlighted') {
+            action.element.classList.add('highlighted');
+            blurHistory.push(action);
+          } else if (action.action === 'region' || action.action === 'highlight-region') {
+            document.body.appendChild(action.element);
+            blurHistory.push(action);
+          }
+        }
+      } catch (error) {
+        console.error('[Blurt-ool] Error in redo handler:', error);
+        showNotification('Error performing redo', true);
       }
     });
   }
@@ -1634,37 +1789,47 @@ function setupToolbarEventListeners() {
   // Draw region button
   if (drawBtn) {
     drawBtn.addEventListener('click', async () => {
-      // Check premium access (with trial support)
-      const access = await window.LicenseManager.canUsePremiumFeature(true);
+      try {
+        // Check premium access (with trial support)
+        const access = await window.LicenseManager.canUsePremiumFeature(true);
 
-      if (!access.allowed) {
-        window.PremiumUI.showPremiumModal();
-        return;
+        if (!access.allowed) {
+          window.PremiumUI.showPremiumModal();
+          return;
+        }
+
+        // Show trial reminder if using trial
+        if (access.reason === 'trial') {
+          showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+        }
+
+        isDrawing = true;
+        isSelecting = false;
+        isSelectingText = false;
+        createOverlay();
+        updateBlurStyle(); // Update cursor
+        setActiveTool('toolbar-draw-region');
+      } catch (error) {
+        console.error('[Blurt-ool] Error in draw region handler:', error);
+        showNotification('Error activating draw region mode', true);
       }
-
-      // Show trial reminder if using trial
-      if (access.reason === 'trial') {
-        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
-      }
-
-      isDrawing = true;
-      isSelecting = false;
-      isSelectingText = false;
-      createOverlay();
-      updateBlurStyle(); // Update cursor
-      setActiveTool('toolbar-draw-region');
     });
   }
 
   // Clear all button
   if (clearBtn) {
     clearBtn.addEventListener('click', async () => {
-      // Clear DOM and also delete saved state (true = clear storage)
-      await clearAllBlurs(true);
-      blurHistory = [];
-      redoHistory = [];
-      removeOverlay();
-      showNotification('All blur/highlight effects cleared');
+      try {
+        // Clear DOM and also delete saved state (true = clear storage)
+        await clearAllBlurs(true);
+        blurHistory = [];
+        redoHistory = [];
+        removeOverlay();
+        showNotification('All blur/highlight effects cleared');
+      } catch (error) {
+        console.error('[Blurt-ool] Error clearing blur effects:', error);
+        showNotification('Error clearing blur effects', true);
+      }
     });
   }
 
@@ -1698,6 +1863,9 @@ function setupToolbarEventListeners() {
       } else {
         premiumBtn.title = 'Upgrade to Premium';
       }
+    }).catch((error) => {
+      console.error('[Blurt-ool] Error checking premium status:', error);
+      premiumBtn.title = 'Upgrade to Premium';
     });
 
     premiumBtn.addEventListener('click', () => {
@@ -1722,67 +1890,87 @@ function setupToolbarEventListeners() {
   // Load configuration button
   if (loadBtn) {
     loadBtn.addEventListener('click', async () => {
-      await loadSavedState();
+      try {
+        await loadSavedState();
+      } catch (error) {
+        console.error('[Blurt-ool] Error in load button handler:', error);
+        showNotification('Error loading configuration', true);
+      }
     });
   }
 
   // Export configuration button
   if (exportBtn) {
     exportBtn.addEventListener('click', async () => {
-      // Check premium access (with trial support)
-      const access = await window.LicenseManager.canUsePremiumFeature(true);
+      try {
+        // Check premium access (with trial support)
+        const access = await window.LicenseManager.canUsePremiumFeature(true);
 
-      if (!access.allowed) {
-        window.PremiumUI.showPremiumModal();
-        return;
+        if (!access.allowed) {
+          window.PremiumUI.showPremiumModal();
+          return;
+        }
+
+        // Show trial reminder if using trial
+        if (access.reason === 'trial') {
+          showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+        }
+
+        exportConfiguration();
+      } catch (error) {
+        console.error('[Blurt-ool] Error in export button handler:', error);
+        showNotification('Error exporting configuration', true);
       }
-
-      // Show trial reminder if using trial
-      if (access.reason === 'trial') {
-        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
-      }
-
-      exportConfiguration();
     });
   }
 
   // Import configuration button
   if (importBtn) {
     importBtn.addEventListener('click', async () => {
-      // Check premium access (with trial support)
-      const access = await window.LicenseManager.canUsePremiumFeature(true);
+      try {
+        // Check premium access (with trial support)
+        const access = await window.LicenseManager.canUsePremiumFeature(true);
 
-      if (!access.allowed) {
-        window.PremiumUI.showPremiumModal();
-        return;
+        if (!access.allowed) {
+          window.PremiumUI.showPremiumModal();
+          return;
+        }
+
+        // Show trial reminder if using trial
+        if (access.reason === 'trial') {
+          showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+        }
+
+        importConfiguration();
+      } catch (error) {
+        console.error('[Blurt-ool] Error in import button handler:', error);
+        showNotification('Error importing configuration', true);
       }
-
-      // Show trial reminder if using trial
-      if (access.reason === 'trial') {
-        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
-      }
-
-      importConfiguration();
     });
   }
 
   // Blur presets manager
   if (presetsBtn) {
     presetsBtn.addEventListener('click', async () => {
-      // Check premium access (with trial support)
-      const access = await window.LicenseManager.canUsePremiumFeature(true);
+      try {
+        // Check premium access (with trial support)
+        const access = await window.LicenseManager.canUsePremiumFeature(true);
 
-      if (!access.allowed) {
-        window.PremiumUI.showPremiumModal();
-        return;
+        if (!access.allowed) {
+          window.PremiumUI.showPremiumModal();
+          return;
+        }
+
+        // Show trial reminder if using trial
+        if (access.reason === 'trial') {
+          showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
+        }
+
+        showPresetsManager();
+      } catch (error) {
+        console.error('[Blurt-ool] Error opening presets manager:', error);
+        showNotification('Error opening presets manager', true);
       }
-
-      // Show trial reminder if using trial
-      if (access.reason === 'trial') {
-        showToast(`Trial: ${access.remainingUses} uses remaining`, 'info');
-      }
-
-      showPresetsManager();
     });
   }
 
@@ -1791,25 +1979,26 @@ function setupToolbarEventListeners() {
 
   if (quickSelectBtn) {
     quickSelectBtn.addEventListener('click', async () => {
-      // Check premium access WITHOUT consuming trial (just check)
-      const access = await window.LicenseManager.canUsePremiumFeature(false);
+      try {
+        // Check premium access WITHOUT consuming trial (just check)
+        const access = await window.LicenseManager.canUsePremiumFeature(false);
 
-      if (!access.allowed) {
-        window.PremiumUI.showPremiumModal();
-        return;
-      }
+        if (!access.allowed) {
+          window.PremiumUI.showPremiumModal();
+          return;
+        }
 
-      // Remove existing menu if any
-      const existingMenu = document.getElementById('quick-select-menu');
-      if (existingMenu) {
-        existingMenu.remove();
-      }
+        // Remove existing menu if any
+        const existingMenu = document.getElementById('quick-select-menu');
+        if (existingMenu) {
+          existingMenu.remove();
+        }
 
-      // Clean up previous event listener if any
-      if (quickSelectCloseListener) {
-        document.removeEventListener('click', quickSelectCloseListener);
-        quickSelectCloseListener = null;
-      }
+        // Clean up previous event listener if any
+        if (quickSelectCloseListener) {
+          document.removeEventListener('click', quickSelectCloseListener);
+          quickSelectCloseListener = null;
+        }
 
       const menu = document.createElement('div');
       menu.id = 'quick-select-menu';
@@ -1895,6 +2084,10 @@ function setupToolbarEventListeners() {
         };
         document.addEventListener('click', quickSelectCloseListener);
       }, 100);
+      } catch (error) {
+        console.error('[Blurt-ool] Error in quick select handler:', error);
+        showNotification('Error showing quick select menu', true);
+      }
     });
   }
 
@@ -2400,21 +2593,54 @@ window.addEventListener('message', async (event) => {
 // This runs when the page loads
 (async function initAutoLoad() {
   try {
-    // Wait for DOM to be ready
+    let loadAttempted = false;
+    const maxWaitTime = 5000; // Maximum wait time of 5 seconds
+    const minWaitTime = 1000; // Minimum wait time of 1 second
+    let startTime = Date.now();
+
+    // Function to attempt loading state
+    const attemptLoad = async () => {
+      if (loadAttempted) return;
+      loadAttempted = true;
+      console.log('[Blurt-ool] Auto-loading saved state');
+      try {
+        await loadSavedState(false); // Don't show "no config" notification
+      } catch (error) {
+        console.error('[Blurt-ool] Error during auto-load:', error);
+      }
+    };
+
+    // Wait for DOM to be ready first
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', async () => {
-        // Extra delay to ensure dynamic content is loaded
+        startTime = Date.now(); // Reset timer after DOMContentLoaded
+
+        // Wait minimum time for initial dynamic content
         setTimeout(async () => {
-          console.log('[Blurt-ool] Auto-loading saved state (after DOMContentLoaded)');
-          await loadSavedState(false); // Don't show "no config" notification
-        }, 1000);
+          await attemptLoad();
+        }, minWaitTime);
       });
     } else {
-      // DOM already ready, wait a bit for dynamic content
-      setTimeout(async () => {
-        console.log('[Blurt-ool] Auto-loading saved state (DOM already ready)');
-        await loadSavedState(false); // Don't show "no config" notification
-      }, 1000);
+      // DOM already ready
+      // Check if page seems to be still loading (images, scripts, etc.)
+      if (document.readyState === 'interactive') {
+        // Wait for complete load
+        window.addEventListener('load', async () => {
+          setTimeout(async () => {
+            await attemptLoad();
+          }, minWaitTime);
+        });
+
+        // But also set a maximum wait fallback
+        setTimeout(async () => {
+          await attemptLoad();
+        }, maxWaitTime);
+      } else {
+        // Page is completely loaded, just wait minimum time
+        setTimeout(async () => {
+          await attemptLoad();
+        }, minWaitTime);
+      }
     }
   } catch (error) {
     console.error('[Blurt-ool] Error initializing auto-load:', error);
