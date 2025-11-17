@@ -495,49 +495,99 @@ function serializeBlurState() {
 function getElementSelector(element) {
   if (!element || !element.tagName) return null;
 
-  // Strategy 1: If element has an ID, use it (most specific and reliable)
-  if (element.id) {
-    return `#${element.id}`;
+  // Strategy 1: If element has a unique ID, use it
+  if (element.id && /^[a-zA-Z][\w\-]*$/.test(element.id)) {
+    // Verify ID is actually unique
+    try {
+      if (document.querySelectorAll(`#${element.id}`).length === 1) {
+        return `#${element.id}`;
+      }
+    } catch (e) {
+      // Invalid ID format, continue to next strategy
+    }
   }
 
-  // Strategy 2: Build path from root using tag names and nth-child
-  // This is more reliable than just classes which can change
+  // Strategy 2: Try data attributes for uniqueness
+  for (const attr of element.attributes) {
+    if (attr.name.startsWith('data-') && attr.value) {
+      const selector = `${element.tagName.toLowerCase()}[${attr.name}="${attr.value}"]`;
+      try {
+        if (document.querySelectorAll(selector).length === 1) {
+          return selector;
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+  }
+
+  // Strategy 3: Build path from root using tag names, classes, and nth-of-type
   const path = [];
   let current = element;
+  let depth = 0;
 
-  while (current && current !== document.body) {
+  while (current && current !== document.body && depth < 10) {
     let selector = current.tagName.toLowerCase();
 
-    // Add classes if available (but filter out blur/highlight classes)
+    // Get clean classes (exclude our extension classes)
     if (current.className && typeof current.className === 'string') {
       const classes = current.className.split(' ')
         .filter(c => c &&
           !c.startsWith('blur') &&
           !c.startsWith('highlight') &&
           c !== 'element-highlight')
+        .slice(0, 3) // Limit to first 3 classes
         .join('.');
       if (classes) {
         selector += `.${classes}`;
       }
     }
 
-    // Add nth-child for specificity
+    // Use nth-of-type instead of nth-child for better stability
     if (current.parentElement) {
-      const siblings = Array.from(current.parentElement.children);
-      const index = siblings.indexOf(current) + 1;
-      if (index > 0) {
-        selector += `:nth-child(${index})`;
+      const siblings = Array.from(current.parentElement.children)
+        .filter(el => el.tagName === current.tagName);
+
+      if (siblings.length > 1) {
+        const index = siblings.indexOf(current) + 1;
+        selector += `:nth-of-type(${index})`;
       }
     }
 
     path.unshift(selector);
     current = current.parentElement;
+    depth++;
 
-    // Limit path depth to avoid overly long selectors
-    if (path.length >= 5) break;
+    // Stop if we have a unique selector
+    try {
+      const testSelector = path.join(' > ');
+      if (document.querySelectorAll(testSelector).length === 1) {
+        break;
+      }
+    } catch (e) {
+      // Invalid selector, continue building
+    }
   }
 
-  return path.join(' > ');
+  const finalSelector = path.join(' > ');
+
+  // Validate the selector works
+  try {
+    const found = document.querySelectorAll(finalSelector);
+    if (found.length > 0) {
+      return finalSelector;
+    }
+  } catch (e) {
+    console.warn('[Blurt-ool] Generated invalid selector:', finalSelector, e);
+  }
+
+  // Fallback: use tag name with all classes as last resort
+  const fallback = element.tagName.toLowerCase() +
+    (element.className && typeof element.className === 'string'
+      ? '.' + element.className.split(' ').filter(c => c && !c.startsWith('blur') && !c.startsWith('highlight')).join('.')
+      : '');
+
+  return fallback || element.tagName.toLowerCase();
 }
 
 async function saveCurrentState(silent = false) {
@@ -624,8 +674,33 @@ async function loadSavedState(showNoConfigNotification = true) {
 }
 
 // Auto-save functionality (Keep Blur is always enabled)
+// Debounced auto-save to prevent excessive saves
+let autoSaveTimeout = null;
 async function autoSaveIfKeepBlurEnabled() {
-  await saveCurrentState(true); // Silent save - no notification
+  // Clear previous timeout
+  if (autoSaveTimeout) {
+    clearTimeout(autoSaveTimeout);
+  }
+
+  // Debounce: wait 500ms after last change before saving
+  autoSaveTimeout = setTimeout(async () => {
+    try {
+      const saved = await saveCurrentState(true); // Silent save
+      if (saved) {
+        console.log('[Blurt-ool] Auto-saved successfully');
+        // Show subtle visual feedback
+        const toolbar = document.getElementById('blur-toolbar');
+        if (toolbar) {
+          toolbar.style.boxShadow = '0 4px 12px rgba(76, 175, 80, 0.3)';
+          setTimeout(() => {
+            toolbar.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+          }, 300);
+        }
+      }
+    } catch (error) {
+      console.error('[Blurt-ool] Auto-save failed:', error);
+    }
+  }, 500);
 }
 
 function applySavedState(state) {
@@ -633,139 +708,177 @@ function applySavedState(state) {
 
   console.log('[Blurt-ool] applySavedState called with:', state);
 
-  // Apply settings
-  if (state.settings) {
-    blurIntensity = state.settings.blurIntensity || 5;
-    highlightColor = state.settings.highlightColor || '#FFFF00';
-    highlightOpacity = state.settings.highlightOpacity || 0.5;
-    updateBlurStyle();
-
-    // Update UI controls
-    const intensitySlider = document.getElementById('toolbar-blur-intensity');
-    const colorPicker = document.getElementById('toolbar-color-picker');
-    if (intensitySlider) intensitySlider.value = blurIntensity;
-    if (colorPicker) colorPicker.value = highlightColor;
-  }
-
-  // Apply blurred elements
-  console.log('[Blurt-ool] Applying', state.blurred?.length || 0, 'blurred elements');
-  state.blurred?.forEach(selector => {
+  // Use requestAnimationFrame to ensure DOM is ready
+  requestAnimationFrame(() => {
     try {
-      const elements = document.querySelectorAll(selector);
-      console.log('[Blurt-ool] Selector', selector, 'matched', elements.length, 'elements');
-      elements.forEach(el => el.classList.add('blurred'));
-    } catch (e) {
-      console.warn('[Blurt-ool] Invalid selector:', selector, e);
-    }
-  });
+      // Apply settings
+      if (state.settings) {
+        blurIntensity = state.settings.blurIntensity || 5;
+        highlightColor = state.settings.highlightColor || '#FFFF00';
+        highlightOpacity = state.settings.highlightOpacity || 0.5;
+        updateBlurStyle();
 
-  // Apply highlighted elements
-  console.log('[Blurt-ool] Applying', state.highlighted?.length || 0, 'highlighted elements');
-  state.highlighted?.forEach(selector => {
-    try {
-      const elements = document.querySelectorAll(selector);
-      console.log('[Blurt-ool] Selector', selector, 'matched', elements.length, 'elements');
-      elements.forEach(el => el.classList.add('highlighted'));
-    } catch (e) {
-      console.warn('[Blurt-ool] Invalid selector:', selector, e);
-    }
-  });
+        // Update UI controls
+        const intensitySlider = document.getElementById('toolbar-blur-intensity');
+        const colorPicker = document.getElementById('toolbar-color-picker');
+        if (intensitySlider) intensitySlider.value = blurIntensity;
+        if (colorPicker) colorPicker.value = highlightColor;
+      }
 
-  // Apply blur regions
-  state.regions?.forEach(regionData => {
-    const region = document.createElement('div');
-    region.className = 'blur-region';
-    region.style.left = regionData.left;
-    region.style.top = regionData.top;
-    region.style.width = regionData.width;
-    region.style.height = regionData.height;
-    document.body.appendChild(region);
-  });
+      let appliedCount = 0;
+      let failedCount = 0;
 
-  // Apply highlight regions
-  state.highlightRegions?.forEach(regionData => {
-    const region = document.createElement('div');
-    region.className = 'highlight-region';
-    region.style.left = regionData.left;
-    region.style.top = regionData.top;
-    region.style.width = regionData.width;
-    region.style.height = regionData.height;
-    document.body.appendChild(region);
-  });
-
-  // Apply text blurs (best effort - may not work if page structure changed)
-  console.log('[Blurt-ool] Applying', state.textBlurs?.length || 0, 'text blurs');
-  state.textBlurs?.forEach(textData => {
-    try {
-      const parents = document.querySelectorAll(textData.parentSelector);
-      console.log('[Blurt-ool] Text blur parent selector', textData.parentSelector, 'matched', parents.length, 'parents');
-      parents.forEach(parent => {
-        // Find text nodes containing the blurred text
-        const walker = document.createTreeWalker(parent, NodeFilter.SHOW_TEXT, null, false);
-        let node;
-        while (node = walker.nextNode()) {
-          if (node.textContent.includes(textData.textContent)) {
-            // Found the text, wrap it in a span
-            const range = document.createRange();
-            const startIndex = node.textContent.indexOf(textData.textContent);
-            if (startIndex !== -1) {
-              try {
-                range.setStart(node, startIndex);
-                range.setEnd(node, startIndex + textData.textContent.length);
-                const span = document.createElement('span');
-                span.className = 'blur-text';
-                range.surroundContents(span);
-                break; // Found and wrapped, move to next textData
-              } catch (e) {
-                // Range might span multiple nodes, skip
-                console.warn('Could not restore text blur:', e);
-              }
-            }
+      // Apply blurred elements
+      console.log('[Blurt-ool] Applying', state.blurred?.length || 0, 'blurred elements');
+      state.blurred?.forEach(selector => {
+        try {
+          const elements = document.querySelectorAll(selector);
+          console.log('[Blurt-ool] Selector', selector, 'matched', elements.length, 'elements');
+          if (elements.length > 0) {
+            elements.forEach(el => {
+              el.classList.add('blurred');
+              appliedCount++;
+            });
+          } else {
+            failedCount++;
+            console.warn('[Blurt-ool] Selector matched 0 elements:', selector);
           }
+        } catch (e) {
+          failedCount++;
+          console.warn('[Blurt-ool] Invalid selector:', selector, e);
         }
       });
-    } catch (e) {
-      console.warn('Error restoring text blur:', e);
-    }
-  });
 
-  // Apply text highlights (best effort - may not work if page structure changed)
-  console.log('[Blurt-ool] Applying', state.textHighlights?.length || 0, 'text highlights');
-  state.textHighlights?.forEach(textData => {
-    try {
-      const parents = document.querySelectorAll(textData.parentSelector);
-      console.log('[Blurt-ool] Text highlight parent selector', textData.parentSelector, 'matched', parents.length, 'parents');
-      parents.forEach(parent => {
-        // Find text nodes containing the highlighted text
-        const walker = document.createTreeWalker(parent, NodeFilter.SHOW_TEXT, null, false);
-        let node;
-        while (node = walker.nextNode()) {
-          if (node.textContent.includes(textData.textContent)) {
-            // Found the text, wrap it in a span
-            const range = document.createRange();
-            const startIndex = node.textContent.indexOf(textData.textContent);
-            if (startIndex !== -1) {
-              try {
-                range.setStart(node, startIndex);
-                range.setEnd(node, startIndex + textData.textContent.length);
-                const span = document.createElement('span');
-                span.className = 'highlight-text';
-                range.surroundContents(span);
-                break; // Found and wrapped, move to next textData
-              } catch (e) {
-                // Range might span multiple nodes, skip
-                console.warn('Could not restore text highlight:', e);
-              }
-            }
+      console.log(`[Blurt-ool] Applied ${appliedCount} blurred elements, ${failedCount} failed`);
+
+      // Apply highlighted elements
+      console.log('[Blurt-ool] Applying', state.highlighted?.length || 0, 'highlighted elements');
+      state.highlighted?.forEach(selector => {
+        try {
+          const elements = document.querySelectorAll(selector);
+          console.log('[Blurt-ool] Selector', selector, 'matched', elements.length, 'elements');
+          if (elements.length > 0) {
+            elements.forEach(el => {
+              el.classList.add('highlighted');
+              appliedCount++;
+            });
+          } else {
+            failedCount++;
+            console.warn('[Blurt-ool] Highlight selector matched 0 elements:', selector);
           }
+        } catch (e) {
+          failedCount++;
+          console.warn('[Blurt-ool] Invalid highlight selector:', selector, e);
         }
       });
-    } catch (e) {
-      console.warn('Error restoring text highlight:', e);
+
+      // Apply blur regions
+      state.regions?.forEach(regionData => {
+        const region = document.createElement('div');
+        region.className = 'blur-region';
+        region.style.left = regionData.left;
+        region.style.top = regionData.top;
+        region.style.width = regionData.width;
+        region.style.height = regionData.height;
+        document.body.appendChild(region);
+        appliedCount++;
+      });
+
+      // Apply highlight regions
+      state.highlightRegions?.forEach(regionData => {
+        const region = document.createElement('div');
+        region.className = 'highlight-region';
+        region.style.left = regionData.left;
+        region.style.top = regionData.top;
+        region.style.width = regionData.width;
+        region.style.height = regionData.height;
+        document.body.appendChild(region);
+        appliedCount++;
+      });
+
+      // Apply text blurs (best effort - may not work if page structure changed)
+      console.log('[Blurt-ool] Applying', state.textBlurs?.length || 0, 'text blurs');
+      state.textBlurs?.forEach(textData => {
+        try {
+          const parents = document.querySelectorAll(textData.parentSelector);
+          console.log('[Blurt-ool] Text blur parent selector', textData.parentSelector, 'matched', parents.length, 'parents');
+          parents.forEach(parent => {
+            // Find text nodes containing the blurred text
+            const walker = document.createTreeWalker(parent, NodeFilter.SHOW_TEXT, null, false);
+            let node;
+            while (node = walker.nextNode()) {
+              if (node.textContent.includes(textData.textContent)) {
+                // Found the text, wrap it in a span
+                const range = document.createRange();
+                const startIndex = node.textContent.indexOf(textData.textContent);
+                if (startIndex !== -1) {
+                  try {
+                    range.setStart(node, startIndex);
+                    range.setEnd(node, startIndex + textData.textContent.length);
+                    const span = document.createElement('span');
+                    span.className = 'blur-text';
+                    range.surroundContents(span);
+                    appliedCount++;
+                    break; // Found and wrapped, move to next textData
+                  } catch (e) {
+                    // Range might span multiple nodes, skip
+                    console.warn('Could not restore text blur:', e);
+                  }
+                }
+              }
+            }
+          });
+        } catch (e) {
+          console.warn('Error restoring text blur:', e);
+        }
+      });
+
+      // Apply text highlights (best effort - may not work if page structure changed)
+      console.log('[Blurt-ool] Applying', state.textHighlights?.length || 0, 'text highlights');
+      state.textHighlights?.forEach(textData => {
+        try {
+          const parents = document.querySelectorAll(textData.parentSelector);
+          console.log('[Blurt-ool] Text highlight parent selector', textData.parentSelector, 'matched', parents.length, 'parents');
+          parents.forEach(parent => {
+            // Find text nodes containing the highlighted text
+            const walker = document.createTreeWalker(parent, NodeFilter.SHOW_TEXT, null, false);
+            let node;
+            while (node = walker.nextNode()) {
+              if (node.textContent.includes(textData.textContent)) {
+                // Found the text, wrap it in a span
+                const range = document.createRange();
+                const startIndex = node.textContent.indexOf(textData.textContent);
+                if (startIndex !== -1) {
+                  try {
+                    range.setStart(node, startIndex);
+                    range.setEnd(node, startIndex + textData.textContent.length);
+                    const span = document.createElement('span');
+                    span.className = 'highlight-text';
+                    range.surroundContents(span);
+                    appliedCount++;
+                    break; // Found and wrapped, move to next textData
+                  } catch (e) {
+                    // Range might span multiple nodes, skip
+                    console.warn('Could not restore text highlight:', e);
+                  }
+                }
+              }
+            }
+          });
+        } catch (e) {
+          console.warn('Error restoring text highlight:', e);
+        }
+      });
+
+      // Show summary
+      if (appliedCount > 0 || failedCount > 0) {
+        console.log(`[Blurt-ool] ✅ Applied total: ${appliedCount} items, ❌ Failed: ${failedCount} items`);
+        showNotification(`Restored ${appliedCount} blur/highlight effects`);
+      }
+    } catch (error) {
+      console.error('[Blurt-ool] Error in applySavedState (inner):', error);
     }
   });
-
-  showNotification('Configuration loaded');
 }
 
 async function exportConfiguration() {
@@ -2590,58 +2703,106 @@ window.addEventListener('message', async (event) => {
 });
 
 // Initialize auto-load - Keep Blur is always enabled
-// This runs when the page loads
+// This runs when the page loads with smart retry logic
 (async function initAutoLoad() {
   try {
     let loadAttempted = false;
-    const maxWaitTime = 5000; // Maximum wait time of 5 seconds
-    const minWaitTime = 1000; // Minimum wait time of 1 second
-    let startTime = Date.now();
+    let retryCount = 0;
+    const maxRetries = 3;
+    const retryDelay = 1000; // Retry every 1 second
 
-    // Function to attempt loading state
-    const attemptLoad = async () => {
-      if (loadAttempted) return;
-      loadAttempted = true;
-      console.log('[Blurt-ool] Auto-loading saved state');
+    // Function to attempt loading state with retry logic
+    const attemptLoad = async (isRetry = false) => {
+      if (loadAttempted && !isRetry) return;
+
       try {
-        await loadSavedState(false); // Don't show "no config" notification
+        console.log(`[Blurt-ool] Auto-loading saved state (attempt ${retryCount + 1})`);
+
+        const success = await loadSavedState(false); // Don't show "no config" notification
+
+        if (success) {
+          loadAttempted = true;
+          console.log('[Blurt-ool] Auto-load successful!');
+
+          // Show subtle visual feedback that blur was restored
+          const toolbar = document.getElementById('blur-toolbar');
+          if (toolbar) {
+            toolbar.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.5)';
+            setTimeout(() => {
+              toolbar.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+            }, 1000);
+          }
+        } else if (retryCount < maxRetries && !loadAttempted) {
+          // No config found, but let's retry in case page is still loading
+          retryCount++;
+          console.log(`[Blurt-ool] No config found, retrying in ${retryDelay}ms...`);
+          setTimeout(() => attemptLoad(true), retryDelay);
+        }
       } catch (error) {
         console.error('[Blurt-ool] Error during auto-load:', error);
+
+        // Retry on error
+        if (retryCount < maxRetries && !loadAttempted) {
+          retryCount++;
+          console.log(`[Blurt-ool] Auto-load failed, retrying in ${retryDelay}ms...`);
+          setTimeout(() => attemptLoad(true), retryDelay);
+        }
       }
     };
 
-    // Wait for DOM to be ready first
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', async () => {
-        startTime = Date.now(); // Reset timer after DOMContentLoaded
-
-        // Wait minimum time for initial dynamic content
-        setTimeout(async () => {
-          await attemptLoad();
-        }, minWaitTime);
-      });
-    } else {
-      // DOM already ready
-      // Check if page seems to be still loading (images, scripts, etc.)
-      if (document.readyState === 'interactive') {
-        // Wait for complete load
-        window.addEventListener('load', async () => {
-          setTimeout(async () => {
-            await attemptLoad();
-          }, minWaitTime);
-        });
-
-        // But also set a maximum wait fallback
-        setTimeout(async () => {
-          await attemptLoad();
-        }, maxWaitTime);
+    // Smart detection of when to load
+    const scheduleAutoLoad = () => {
+      if (document.readyState === 'complete') {
+        // Page fully loaded, wait a bit for dynamic content
+        setTimeout(() => attemptLoad(), 800);
+      } else if (document.readyState === 'interactive') {
+        // DOM ready, wait for resources
+        window.addEventListener('load', () => {
+          setTimeout(() => attemptLoad(), 500);
+        }, { once: true });
       } else {
-        // Page is completely loaded, just wait minimum time
-        setTimeout(async () => {
-          await attemptLoad();
-        }, minWaitTime);
+        // Still loading, wait for DOM
+        document.addEventListener('DOMContentLoaded', () => {
+          setTimeout(() => attemptLoad(), 800);
+        }, { once: true });
       }
-    }
+    };
+
+    // Start the auto-load process
+    scheduleAutoLoad();
+
+    // Also watch for dynamic content changes and retry if needed
+    // This helps with SPAs and lazy-loaded content
+    let dynamicLoadTimeout = null;
+    const observer = new MutationObserver(() => {
+      if (loadAttempted) {
+        observer.disconnect();
+        return;
+      }
+
+      // Debounce: wait for DOM to stabilize
+      if (dynamicLoadTimeout) {
+        clearTimeout(dynamicLoadTimeout);
+      }
+
+      dynamicLoadTimeout = setTimeout(() => {
+        if (!loadAttempted && retryCount < maxRetries) {
+          console.log('[Blurt-ool] DOM changed, attempting auto-load...');
+          attemptLoad();
+        }
+      }, 2000);
+    });
+
+    // Observe for 10 seconds max
+    observer.observe(document.body || document.documentElement, {
+      childList: true,
+      subtree: true
+    });
+
+    setTimeout(() => {
+      observer.disconnect();
+    }, 10000);
+
   } catch (error) {
     console.error('[Blurt-ool] Error initializing auto-load:', error);
   }
