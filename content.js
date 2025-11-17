@@ -16,6 +16,8 @@ let toolbarVisible = true;
 let activeToolMode = null; // Track which tool is currently active
 let toolbarCompact = false; // Track toolbar compact mode
 let keepBlurEnabled = true; // Auto-save/load is always enabled
+let multiSelectElements = []; // Track elements selected with Shift key
+let isMultiSelectMode = false; // Track if Shift is held during selection
 
 // Constants for z-index
 const Z_INDEX_MAX = 2147483647;
@@ -176,6 +178,22 @@ function trackBlurAction(element, action) {
 const style = document.createElement('style');
 document.head.appendChild(style);
 
+// Load Bootstrap Icons CSS for toolbar icons
+if (!document.getElementById('bootstrap-icons-css')) {
+  const iconLink = document.createElement('link');
+  iconLink.id = 'bootstrap-icons-css';
+  iconLink.rel = 'stylesheet';
+  iconLink.href = 'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css';
+  iconLink.crossOrigin = 'anonymous';
+  document.head.appendChild(iconLink);
+  iconLink.onload = () => {
+    console.log('[Blurt-ool] Bootstrap Icons CSS loaded successfully');
+  };
+  iconLink.onerror = () => {
+    console.error('[Blurt-ool] Failed to load Bootstrap Icons CSS');
+  };
+}
+
 function createOverlay() {
   if (overlay) return;
   overlay = document.createElement('div');
@@ -193,6 +211,14 @@ function removeOverlay() {
     lastHighlightedElement.classList.remove('element-highlight');
     lastHighlightedElement = null;
   }
+  // Clear multi-select elements and remove outlines
+  multiSelectElements.forEach(el => {
+    if (el.style.outline) {
+      el.style.outline = '';
+      el.style.outlineOffset = '';
+    }
+  });
+  multiSelectElements = [];
   // Fix text selection restoration
   if (originalUserSelect !== '') {
     document.body.style.userSelect = originalUserSelect;
@@ -380,28 +406,51 @@ function serializeBlurState() {
 }
 
 function getElementSelector(element) {
-  // If element has an ID, use it (most specific)
-  if (element.id) return `#${element.id}`;
+  if (!element || !element.tagName) return null;
 
-  // Build selector with classes if available
-  let selector = element.tagName.toLowerCase();
-  if (element.className && typeof element.className === 'string') {
-    const classes = element.className.split(' ')
-      .filter(c => c && !c.startsWith('blur') && !c.startsWith('highlight') && c !== 'element-highlight')
-      .join('.');
-    if (classes) selector += `.${classes}`;
+  // Strategy 1: If element has an ID, use it (most specific and reliable)
+  if (element.id) {
+    return `#${element.id}`;
   }
 
-  // Add nth-child for better specificity if element has parent
-  if (element.parentElement) {
-    const siblings = Array.from(element.parentElement.children);
-    const index = siblings.indexOf(element) + 1;
-    if (index > 0) {
-      selector += `:nth-child(${index})`;
+  // Strategy 2: Build path from root using tag names and nth-child
+  // This is more reliable than just classes which can change
+  const path = [];
+  let current = element;
+
+  while (current && current !== document.body) {
+    let selector = current.tagName.toLowerCase();
+
+    // Add classes if available (but filter out blur/highlight classes)
+    if (current.className && typeof current.className === 'string') {
+      const classes = current.className.split(' ')
+        .filter(c => c &&
+          !c.startsWith('blur') &&
+          !c.startsWith('highlight') &&
+          c !== 'element-highlight')
+        .join('.');
+      if (classes) {
+        selector += `.${classes}`;
+      }
     }
+
+    // Add nth-child for specificity
+    if (current.parentElement) {
+      const siblings = Array.from(current.parentElement.children);
+      const index = siblings.indexOf(current) + 1;
+      if (index > 0) {
+        selector += `:nth-child(${index})`;
+      }
+    }
+
+    path.unshift(selector);
+    current = current.parentElement;
+
+    // Limit path depth to avoid overly long selectors
+    if (path.length >= 5) break;
   }
 
-  return selector;
+  return path.join(' > ');
 }
 
 async function saveCurrentState(silent = false) {
@@ -762,8 +811,13 @@ function updateStatusIndicator() {
   let statusColor = '#6b7280';
 
   if (isSelecting) {
-    statusText = 'Click element to blur/highlight';
-    statusColor = '#667eea';
+    if (multiSelectElements.length > 0) {
+      statusText = `Multi-select: ${multiSelectElements.length} selected (Hold Shift to add more)`;
+      statusColor = '#4CAF50';
+    } else {
+      statusText = 'Click element to blur/highlight (Hold Shift for multi-select)';
+      statusColor = '#667eea';
+    }
   } else if (isDrawing) {
     statusText = 'Drag to draw region';
     statusColor = '#667eea';
@@ -2036,28 +2090,70 @@ document.addEventListener('click', async (event) => {
         !element.closest('#blur-toolbar-container') &&
         element.id !== 'blur-mode-overlay' &&
         !element.closest('.blur-preset-modal')) {
+
+      // Check if Shift key is held for multi-select
+      const isShiftHeld = event.shiftKey;
+
       if (element.classList.contains('blur-region') || element.classList.contains('highlight-region')) {
         // Track before removing (bug fix)
         trackBlurAction(element, element.classList.contains('blur-region') ? 'region' : 'highlight-region');
         element.remove();
       } else {
-        if (isHighlightMode) {
-          element.classList.toggle('highlighted');
-          if (element.classList.contains('highlighted')) {
-            trackBlurAction(element, 'highlighted');
+        if (isShiftHeld) {
+          // Multi-select mode: Add element to selection
+          if (!multiSelectElements.includes(element)) {
+            multiSelectElements.push(element);
+            // Add visual indicator for selected elements
+            element.style.outline = '3px dashed #4CAF50';
+            element.style.outlineOffset = '2px';
+            console.log('[Blurt-ool] Multi-select: Added element. Total selected:', multiSelectElements.length);
+            updateStatusIndicator(); // Update status to show selection count
           }
+          // Keep selection mode active
+          return false;
         } else {
-          element.classList.toggle('blurred');
-          if (element.classList.contains('blurred')) {
-            trackBlurAction(element, 'blurred');
+          // Single select or apply multi-select
+          const elementsToProcess = multiSelectElements.length > 0 ? [...multiSelectElements, element] : [element];
+
+          // Apply blur/highlight to all selected elements
+          elementsToProcess.forEach(el => {
+            // Remove selection outline
+            if (el.style.outline) {
+              el.style.outline = '';
+              el.style.outlineOffset = '';
+            }
+
+            if (isHighlightMode) {
+              el.classList.toggle('highlighted');
+              if (el.classList.contains('highlighted')) {
+                trackBlurAction(el, 'highlighted');
+              }
+            } else {
+              el.classList.toggle('blurred');
+              if (el.classList.contains('blurred')) {
+                trackBlurAction(el, 'blurred');
+              }
+            }
+          });
+
+          // Show notification
+          if (elementsToProcess.length > 1) {
+            showNotification(`${isHighlightMode ? 'Highlighted' : 'Blurred'} ${elementsToProcess.length} elements`);
           }
+
+          // Clear multi-select
+          multiSelectElements = [];
+          exitSelectMode();
+          // Auto-save if Keep Blur is enabled
+          await autoSaveIfKeepBlurEnabled();
         }
       }
     }
-    exitSelectMode();
-    // Auto-save if Keep Blur is enabled
-    await autoSaveIfKeepBlurEnabled();
-    return false;
+
+    // Exit if not holding Shift
+    if (!event.shiftKey && multiSelectElements.length === 0) {
+      return false;
+    }
   }
 }, true);
 
@@ -2304,11 +2400,23 @@ window.addEventListener('message', async (event) => {
 // This runs when the page loads
 (async function initAutoLoad() {
   try {
-    // Wait a bit for page to stabilize before auto-loading
-    setTimeout(async () => {
-      await loadSavedState(false); // Don't show "no config" notification
-    }, 500);
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', async () => {
+        // Extra delay to ensure dynamic content is loaded
+        setTimeout(async () => {
+          console.log('[Blurt-ool] Auto-loading saved state (after DOMContentLoaded)');
+          await loadSavedState(false); // Don't show "no config" notification
+        }, 1000);
+      });
+    } else {
+      // DOM already ready, wait a bit for dynamic content
+      setTimeout(async () => {
+        console.log('[Blurt-ool] Auto-loading saved state (DOM already ready)');
+        await loadSavedState(false); // Don't show "no config" notification
+      }, 1000);
+    }
   } catch (error) {
-    console.error('Error initializing auto-load:', error);
+    console.error('[Blurt-ool] Error initializing auto-load:', error);
   }
 })();
