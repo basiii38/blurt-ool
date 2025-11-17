@@ -480,6 +480,11 @@ function updateBlurStyle() {
       text-shadow: 0 0 ${blurIntensity}px rgba(0,0,0,0.5) !important;
       background: rgba(0,0,0,0.1) !important;
       border-radius: 2px !important;
+      display: inline !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      border: none !important;
+      vertical-align: baseline !important;
     }
     .highlighted:not(#blur-toolbar-container):not(#blur-toolbar):not(#blur-toolbar *) {
       background-color: ${highlightColor} !important;
@@ -497,17 +502,31 @@ function updateBlurStyle() {
       background-color: ${highlightColor} !important;
       border-radius: 2px !important;
       padding: 2px 0 !important;
+      display: inline !important;
+      margin: 0 !important;
+      border: none !important;
+      vertical-align: baseline !important;
     }
     #blur-toolbar-container {
       position: fixed !important;
       z-index: ${Z_INDEX_MAX} !important;
       pointer-events: auto !important;
       filter: none !important;
+      all: initial !important;
+      box-sizing: border-box !important;
+      line-height: normal !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
     }
-    #blur-toolbar-container *, #blur-toolbar, #blur-toolbar * {
+    #blur-toolbar-container *,
+    #blur-toolbar,
+    #blur-toolbar * {
+      all: revert !important;
       filter: none !important;
       pointer-events: auto !important;
-      z-index: ${Z_INDEX_MAX} !important;
+      box-sizing: border-box !important;
+      line-height: normal !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+      color: inherit !important;
     }
     #blur-mode-overlay {
       position: fixed;
@@ -620,23 +639,34 @@ function serializeBlurState() {
 function getElementSelector(element) {
   if (!element || !element.tagName) return null;
 
+  // Helper function to escape special characters in CSS selectors
+  function escapeCSS(str) {
+    if (!str) return '';
+    // CSS.escape is the standard way, but add fallback for older browsers
+    if (typeof CSS !== 'undefined' && CSS.escape) {
+      return CSS.escape(str);
+    }
+    // Manual escape for special CSS characters
+    return str.replace(/(["!#$%&'()*+,.\/:;<=>?@\[\\\]^`{|}~])/g, '\\$1');
+  }
+
   // Strategy 1: If element has a unique ID, use it
-  if (element.id && /^[a-zA-Z][\w\-]*$/.test(element.id)) {
-    // Verify ID is actually unique
+  if (element.id) {
     try {
-      if (document.querySelectorAll(`#${element.id}`).length === 1) {
-        return `#${element.id}`;
+      const escapedId = escapeCSS(element.id);
+      if (document.querySelectorAll(`#${escapedId}`).length === 1) {
+        return `#${escapedId}`;
       }
     } catch (e) {
-      // Invalid ID format, continue to next strategy
+      // Invalid ID, continue to next strategy
     }
   }
 
   // Strategy 2: Try data attributes for uniqueness
   for (const attr of element.attributes) {
-    if (attr.name.startsWith('data-') && attr.value) {
-      const selector = `${element.tagName.toLowerCase()}[${attr.name}="${attr.value}"]`;
+    if (attr.name.startsWith('data-') && attr.value && attr.value.length < 50) {
       try {
+        const selector = `${element.tagName.toLowerCase()}[${attr.name}="${attr.value.replace(/"/g, '\\"')}"]`;
         if (document.querySelectorAll(selector).length === 1) {
           return selector;
         }
@@ -651,7 +681,7 @@ function getElementSelector(element) {
   let current = element;
   let depth = 0;
 
-  while (current && current !== document.body && depth < 10) {
+  while (current && current !== document.body && depth < 8) {
     let selector = current.tagName.toLowerCase();
 
     // Get clean classes (exclude our extension classes)
@@ -660,9 +690,19 @@ function getElementSelector(element) {
         .filter(c => c &&
           !c.startsWith('blur') &&
           !c.startsWith('highlight') &&
-          c !== 'element-highlight')
-        .slice(0, 3) // Limit to first 3 classes
+          c !== 'element-highlight' &&
+          c.length < 30) // Skip overly long class names
+        .slice(0, 2) // Limit to first 2 classes to avoid complex selectors
+        .map(c => {
+          try {
+            return escapeCSS(c);
+          } catch (e) {
+            return null;
+          }
+        })
+        .filter(c => c) // Remove nulls
         .join('.');
+
       if (classes) {
         selector += `.${classes}`;
       }
@@ -673,7 +713,7 @@ function getElementSelector(element) {
       const siblings = Array.from(current.parentElement.children)
         .filter(el => el.tagName === current.tagName);
 
-      if (siblings.length > 1) {
+      if (siblings.length > 1 && siblings.length < 100) { // Avoid huge nth-of-type values
         const index = siblings.indexOf(current) + 1;
         selector += `:nth-of-type(${index})`;
       }
@@ -683,36 +723,50 @@ function getElementSelector(element) {
     current = current.parentElement;
     depth++;
 
-    // Stop if we have a unique selector
-    try {
-      const testSelector = path.join(' > ');
-      if (document.querySelectorAll(testSelector).length === 1) {
-        break;
+    // Test selector at each iteration
+    if (path.length >= 2) { // At least 2 levels deep
+      try {
+        const testSelector = path.join(' > ');
+        if (document.querySelectorAll(testSelector).length === 1) {
+          return testSelector; // Found unique selector!
+        }
+      } catch (e) {
+        // Invalid selector, continue building
       }
-    } catch (e) {
-      // Invalid selector, continue building
     }
   }
 
   const finalSelector = path.join(' > ');
 
-  // Validate the selector works
+  // Validate the final selector
   try {
     const found = document.querySelectorAll(finalSelector);
-    if (found.length > 0) {
+    if (found.length > 0 && found.length < 50) { // Not too many matches
       return finalSelector;
     }
   } catch (e) {
-    console.warn('[Blurt-ool] Generated invalid selector:', finalSelector, e);
+    console.warn('[Blurt-ool] Invalid selector generated:', finalSelector.substring(0, 100), e.message);
   }
 
-  // Fallback: use tag name with all classes as last resort
-  const fallback = element.tagName.toLowerCase() +
-    (element.className && typeof element.className === 'string'
-      ? '.' + element.className.split(' ').filter(c => c && !c.startsWith('blur') && !c.startsWith('highlight')).join('.')
-      : '');
+  // Fallback: simple tag name with first valid class only
+  let fallback = element.tagName.toLowerCase();
 
-  return fallback || element.tagName.toLowerCase();
+  if (element.className && typeof element.className === 'string') {
+    const firstClass = element.className.split(' ')
+      .filter(c => c &&
+        !c.startsWith('blur') &&
+        !c.startsWith('highlight') &&
+        c.length < 30)[0];
+    if (firstClass) {
+      try {
+        fallback += '.' + escapeCSS(firstClass);
+      } catch (e) {
+        // Just use tag name
+      }
+    }
+  }
+
+  return fallback;
 }
 
 async function saveCurrentState(silent = false) {
@@ -2657,30 +2711,70 @@ document.addEventListener('mouseup', (event) => {
         const span = document.createElement('span');
         span.className = isHighlightMode ? 'highlight-text' : 'blur-text';
 
+        // Critical: Make span inline and non-disruptive
+        span.style.display = 'inline';
+        span.style.margin = '0';
+        span.style.padding = '0';
+        span.style.border = 'none';
+        span.style.font = 'inherit';
+        span.style.lineHeight = 'inherit';
+        span.style.letterSpacing = 'inherit';
+        span.style.wordSpacing = 'inherit';
+        span.style.textDecoration = 'inherit';
+        span.style.verticalAlign = 'baseline';
+
         try {
-          const contents = range.extractContents();
-          span.appendChild(contents);
-          range.insertNode(span);
+          // Try surroundContents first (safer, doesn't break structure)
+          try {
+            range.surroundContents(span);
+            const actionType = isHighlightMode ? 'text-highlight' : 'text-blur';
+            trackBlurAction(span, actionType);
+            selection.removeAllRanges();
+            showNotification(`Text ${isHighlightMode ? 'highlighted' : 'blurred'}`);
 
-          const actionType = isHighlightMode ? 'text-highlight' : 'text-blur';
-          trackBlurAction(span, actionType);
+            // Auto-save
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            await autoSaveIfKeepBlurEnabled();
+            exitTextSelectMode();
+          } catch (surroundError) {
+            // surroundContents failed (range spans multiple elements)
+            // Fallback: apply class directly to containing elements
+            console.log('[Blurt-ool] surroundContents failed, using element-based approach');
 
-          selection.removeAllRanges();
+            // Get all elements in the selection
+            const startContainer = range.startContainer;
+            const endContainer = range.endContainer;
 
-          // Show notification
-          showNotification(`Text ${isHighlightMode ? 'highlighted' : 'blurred'}`);
+            // Find the common ancestor that can be styled
+            let commonAncestor = range.commonAncestorContainer;
+            if (commonAncestor.nodeType === 3) {
+              commonAncestor = commonAncestor.parentNode;
+            }
 
-          // Wait for DOM to settle before auto-saving
-          await new Promise(resolve => requestAnimationFrame(resolve));
+            // Apply blur/highlight class to the common ancestor
+            if (commonAncestor && commonAncestor !== document.body && !commonAncestor.closest('#blur-toolbar-container')) {
+              if (isHighlightMode) {
+                commonAncestor.classList.add('highlighted');
+                trackBlurAction(commonAncestor, 'highlighted');
+              } else {
+                commonAncestor.classList.add('blurred');
+                trackBlurAction(commonAncestor, 'blurred');
+              }
 
-          // Auto-save if Keep Blur is enabled
-          await autoSaveIfKeepBlurEnabled();
+              selection.removeAllRanges();
+              showNotification(`Element ${isHighlightMode ? 'highlighted' : 'blurred'} (text selection spans multiple elements)`);
 
-          // Exit text selection mode after successful blur
-          exitTextSelectMode();
+              // Auto-save
+              await new Promise(resolve => requestAnimationFrame(resolve));
+              await autoSaveIfKeepBlurEnabled();
+              exitTextSelectMode();
+            } else {
+              throw surroundError; // Re-throw if we can't handle it
+            }
+          }
         } catch (error) {
           console.warn('Could not blur selected text:', error);
-          showNotification('Could not blur selected text', true);
+          showNotification('Could not blur selected text. Try selecting simpler text.', true);
         }
       }
     }, 10);
