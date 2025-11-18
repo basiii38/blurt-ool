@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Element Blur - Blur & Highlight Any Web Content | Chrome Extension</title>
+    <meta name="description" content="Professional Chrome extension to blur sensitive content, highlight important elements, and control what you see on any webpage. Free to use with premium features.">
+    <meta name="keywords" content="blur extension, chrome blur, privacy extension, content blocker, highlight tool">
+
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="Element Blur - Control What You See on the Web">
+    <meta property="og:description" content="Blur sensitive content, highlight important elements, and take control of your browsing experience.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://blurtkit.online">
+
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- AOS Animation Library -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --accent-color: #f093fb;
+            --dark-color: #1a202c;
+            --light-color: #f7fafc;
+            --gradient: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        }
+
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        body {
+            overflow-x: hidden;
+        }
+
+        /* Navbar */
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+            padding: 1rem 0;
+            transition: all 0.3s ease;
+        }
+
+        .navbar.scrolled {
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar-brand {
+            font-weight: 800;
+            font-size: 1.5rem;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-link {
+            font-weight: 500;
+            color: var(--dark-color) !important;
+            margin: 0 0.5rem;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--primary-color) !important;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: var(--gradient);
+            padding: 120px 0 100px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse"><path d="M 100 0 L 0 0 0 100" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(%23grid)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+        }
+
+        .hero p.lead {
+            font-size: 1.3rem;
+            color: rgba(255, 255, 255, 0.95);
+            margin-bottom: 2rem;
+        }
+
+        .btn-hero {
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            border: none;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-hero-primary {
+            background: white;
+            color: var(--primary-color);
+        }
+
+        .btn-hero-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.2);
+            color: var(--primary-color);
+        }
+
+        .btn-hero-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn-hero-secondary:hover {
+            background: white;
+            color: var(--primary-color);
+            transform: translateY(-3px);
+        }
+
+        /* Features Section */
+        .features {
+            padding: 100px 0;
+            background: var(--light-color);
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            color: var(--dark-color);
+        }
+
+        .section-subtitle {
+            font-size: 1.2rem;
+            color: #64748b;
+            margin-bottom: 4rem;
+        }
+
+        .feature-card {
+            background: white;
+            border-radius: 20px;
+            padding: 2.5rem;
+            height: 100%;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.15);
+        }
+
+        .feature-icon {
+            width: 70px;
+            height: 70px;
+            background: var(--gradient);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            font-size: 2rem;
+            color: white;
+        }
+
+        .feature-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--dark-color);
+        }
+
+        .feature-description {
+            color: #64748b;
+            line-height: 1.7;
+        }
+
+        /* Demo Section */
+        .demo {
+            padding: 100px 0;
+            background: white;
+        }
+
+        .demo-video-container {
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 80px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .demo-video-container::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: var(--gradient);
+            border-radius: 20px;
+            z-index: -1;
+        }
+
+        .demo-video {
+            width: 100%;
+            border-radius: 18px;
+            background: #000;
+        }
+
+        /* How It Works */
+        .how-it-works {
+            padding: 100px 0;
+            background: var(--light-color);
+        }
+
+        .step-card {
+            text-align: center;
+            position: relative;
+        }
+
+        .step-number {
+            width: 80px;
+            height: 80px;
+            background: var(--gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 800;
+            color: white;
+            margin: 0 auto 2rem;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+        }
+
+        .step-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--dark-color);
+        }
+
+        .step-description {
+            color: #64748b;
+            line-height: 1.7;
+        }
+
+        /* Pricing Section */
+        .pricing {
+            padding: 100px 0;
+            background: white;
+        }
+
+        .pricing-card {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem 2.5rem;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        }
+
+        .pricing-card.featured {
+            background: var(--gradient);
+            border: none;
+            transform: scale(1.05);
+            color: white;
+        }
+
+        .pricing-card.featured:hover {
+            transform: scale(1.08) translateY(-10px);
+        }
+
+        .pricing-card.featured .pricing-title,
+        .pricing-card.featured .pricing-price,
+        .pricing-card.featured .pricing-feature {
+            color: white;
+        }
+
+        .pricing-badge {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.4rem 1rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+
+        .pricing-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--dark-color);
+        }
+
+        .pricing-price {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--dark-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .pricing-period {
+            font-size: 1rem;
+            color: #64748b;
+            margin-bottom: 2rem;
+        }
+
+        .pricing-features {
+            list-style: none;
+            padding: 0;
+            margin: 2rem 0;
+        }
+
+        .pricing-feature {
+            padding: 0.75rem 0;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+        }
+
+        .pricing-feature i {
+            color: var(--primary-color);
+            margin-right: 0.75rem;
+            font-size: 1.2rem;
+        }
+
+        .pricing-card.featured .pricing-feature i {
+            color: white;
+        }
+
+        .btn-pricing {
+            width: 100%;
+            padding: 15px;
+            font-weight: 600;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        /* FAQ Section */
+        .faq {
+            padding: 100px 0;
+            background: var(--light-color);
+        }
+
+        .accordion-item {
+            border: none;
+            margin-bottom: 1rem;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .accordion-button {
+            font-weight: 600;
+            font-size: 1.1rem;
+            padding: 1.5rem;
+            background: white;
+            color: var(--dark-color);
+        }
+
+        .accordion-button:not(.collapsed) {
+            background: var(--gradient);
+            color: white;
+            box-shadow: none;
+        }
+
+        .accordion-button:focus {
+            box-shadow: none;
+            border-color: transparent;
+        }
+
+        .accordion-body {
+            padding: 1.5rem;
+            color: #64748b;
+            line-height: 1.7;
+        }
+
+        /* CTA Section */
+        .cta {
+            padding: 100px 0;
+            background: var(--gradient);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+        }
+
+        .cta h2 {
+            font-size: 3rem;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 1.5rem;
+        }
+
+        .cta p {
+            font-size: 1.3rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 2.5rem;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--dark-color);
+            color: white;
+            padding: 60px 0 30px;
+        }
+
+        .footer h5 {
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+        }
+
+        .footer a {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer a:hover {
+            color: white;
+        }
+
+        .footer-links {
+            list-style: none;
+            padding: 0;
+        }
+
+        .footer-links li {
+            margin-bottom: 0.75rem;
+        }
+
+        .social-links a {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            text-align: center;
+            line-height: 40px;
+            margin-right: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .social-links a:hover {
+            background: var(--primary-color);
+            transform: translateY(-3px);
+        }
+
+        /* Stats Section */
+        .stats {
+            padding: 80px 0;
+            background: white;
+        }
+
+        .stat-card {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 1.1rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        /* Testimonials */
+        .testimonials {
+            padding: 100px 0;
+            background: var(--light-color);
+        }
+
+        .testimonial-card {
+            background: white;
+            border-radius: 20px;
+            padding: 2.5rem;
+            height: 100%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+        }
+
+        .testimonial-text {
+            font-size: 1.1rem;
+            color: var(--dark-color);
+            margin-bottom: 1.5rem;
+            line-height: 1.7;
+        }
+
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+        }
+
+        .testimonial-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            margin-right: 1rem;
+        }
+
+        .testimonial-name {
+            font-weight: 700;
+            color: var(--dark-color);
+        }
+
+        .testimonial-role {
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        .stars {
+            color: #fbbf24;
+            margin-bottom: 1rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero p.lead {
+                font-size: 1.1rem;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+
+            .cta h2 {
+                font-size: 2rem;
+            }
+
+            .btn-hero {
+                padding: 12px 30px;
+                font-size: 1rem;
+            }
+        }
+
+        /* Animation */
+        .fade-in-up {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease;
+        }
+
+        .fade-in-up.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Badge */
+        .badge-chrome {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .badge-chrome i {
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-eye-slash-fill"></i> Element Blur
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#features">Features</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#demo">Demo</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#pricing">Pricing</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#faq">FAQ</a>
+                    </li>
+                    <li class="nav-item ms-lg-3">
+                        <a href="https://blurtkit.online/buy" class="btn btn-primary btn-sm px-4" style="border-radius: 50px;">
+                            Go Premium
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container position-relative">
+            <div class="row align-items-center">
+                <div class="col-lg-6" data-aos="fade-right">
+                    <div class="badge-chrome">
+                        <i class="bi bi-google"></i>
+                        Available for Chrome, Edge, Brave & All Chromium Browsers
+                    </div>
+                    <h1>Control What You See on the Web</h1>
+                    <p class="lead">Blur sensitive content, highlight important elements, and take full control of your browsing experience with the most powerful privacy tool.</p>
+                    <div class="d-flex gap-3 flex-wrap">
+                        <a href="#" class="btn btn-hero btn-hero-primary">
+                            <i class="bi bi-download me-2"></i>
+                            Add to Chrome - Free
+                        </a>
+                        <a href="#demo" class="btn btn-hero btn-hero-secondary">
+                            <i class="bi bi-play-circle me-2"></i>
+                            Watch Demo
+                        </a>
+                    </div>
+                </div>
+                <div class="col-lg-6 mt-5 mt-lg-0" data-aos="fade-left">
+                    <img src="https://via.placeholder.com/600x400/667eea/ffffff?text=Extension+Screenshot" alt="Element Blur Screenshot" class="img-fluid rounded-4 shadow-lg">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-3 col-6 mb-4 mb-md-0" data-aos="fade-up" data-aos-delay="0">
+                    <div class="stat-card">
+                        <div class="stat-number">10K+</div>
+                        <div class="stat-label">Active Users</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 mb-4 mb-md-0" data-aos="fade-up" data-aos-delay="100">
+                    <div class="stat-card">
+                        <div class="stat-number">50K+</div>
+                        <div class="stat-label">Elements Blurred</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6" data-aos="fade-up" data-aos-delay="200">
+                    <div class="stat-card">
+                        <div class="stat-number">4.8</div>
+                        <div class="stat-label">Star Rating</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6" data-aos="fade-up" data-aos-delay="300">
+                    <div class="stat-card">
+                        <div class="stat-number">100%</div>
+                        <div class="stat-label">Privacy Focused</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="section-title" data-aos="fade-up">Powerful Features</h2>
+                <p class="section-subtitle" data-aos="fade-up" data-aos-delay="100">Everything you need to control your browsing experience</p>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="0">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="bi bi-eye-slash"></i>
+                        </div>
+                        <h3 class="feature-title">Smart Blur Tool</h3>
+                        <p class="feature-description">Click any element to instantly blur sensitive content. Perfect for screenshots, screen sharing, and privacy protection.</p>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="100">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="bi bi-brightness-high"></i>
+                        </div>
+                        <h3 class="feature-title">Highlight Mode</h3>
+                        <p class="feature-description">Switch to highlight mode to make important content stand out. Perfect for presentations and focus sessions.</p>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="200">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="bi bi-brush"></i>
+                        </div>
+                        <h3 class="feature-title">Draw Regions</h3>
+                        <p class="feature-description">Draw custom blur or highlight regions anywhere on the page. Full control over what gets blurred.</p>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="0">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="bi bi-clipboard-check"></i>
+                        </div>
+                        <h3 class="feature-title">Quick Select Similar</h3>
+                        <p class="feature-description">Select one element and instantly apply the same effect to all similar elements on the page.</p>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="100">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </div>
+                        <h3 class="feature-title">Unlimited Undo/Redo</h3>
+                        <p class="feature-description">Made a mistake? No problem. Full undo/redo history lets you experiment freely.</p>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="200">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="bi bi-save"></i>
+                        </div>
+                        <h3 class="feature-title">Custom Presets</h3>
+                        <p class="feature-description">Save your blur configurations as presets and apply them instantly to any website.</p>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="0">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="bi bi-sliders"></i>
+                        </div>
+                        <h3 class="feature-title">Adjustable Intensity</h3>
+                        <p class="feature-description">Control the blur intensity from subtle to completely hidden. Perfect for any privacy need.</p>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="100">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="bi bi-palette"></i>
+                        </div>
+                        <h3 class="feature-title">Custom Colors</h3>
+                        <p class="feature-description">Personalize highlight colors to match your preferences or workflow needs.</p>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="200">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="bi bi-shield-check"></i>
+                        </div>
+                        <h3 class="feature-title">Privacy First</h3>
+                        <p class="feature-description">All processing happens locally. Your data never leaves your browser.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Demo Section -->
+    <section id="demo" class="demo">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="section-title" data-aos="fade-up">See It In Action</h2>
+                <p class="section-subtitle" data-aos="fade-up" data-aos-delay="100">Watch how easy it is to blur and highlight content</p>
+            </div>
+
+            <div class="row justify-content-center">
+                <div class="col-lg-10" data-aos="zoom-in">
+                    <div class="demo-video-container">
+                        <video class="demo-video" controls poster="https://via.placeholder.com/1200x675/667eea/ffffff?text=Demo+Video">
+                            <source src="demo-video.mp4" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="section-title" data-aos="fade-up">How It Works</h2>
+                <p class="section-subtitle" data-aos="fade-up" data-aos-delay="100">Get started in seconds</p>
+            </div>
+
+            <div class="row g-5">
+                <div class="col-md-4" data-aos="fade-up" data-aos-delay="0">
+                    <div class="step-card">
+                        <div class="step-number">1</div>
+                        <h3 class="step-title">Install Extension</h3>
+                        <p class="step-description">Click "Add to Chrome" and install Element Blur in one click. Works on all Chromium browsers.</p>
+                    </div>
+                </div>
+
+                <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
+                    <div class="step-card">
+                        <div class="step-number">2</div>
+                        <h3 class="step-title">Select Elements</h3>
+                        <p class="step-description">Click the extension icon and start selecting elements to blur or highlight. It's that simple!</p>
+                    </div>
+                </div>
+
+                <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
+                    <div class="step-card">
+                        <div class="step-number">3</div>
+                        <h3 class="step-title">Save & Share</h3>
+                        <p class="step-description">Save your configurations as presets or take screenshots with blurred content. Perfect for sharing!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="pricing">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="section-title" data-aos="fade-up">Simple, Transparent Pricing</h2>
+                <p class="section-subtitle" data-aos="fade-up" data-aos-delay="100">Start free, upgrade when you need more</p>
+            </div>
+
+            <div class="row g-4 justify-content-center">
+                <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="0">
+                    <div class="pricing-card">
+                        <h3 class="pricing-title">Free</h3>
+                        <div class="pricing-price">$0</div>
+                        <div class="pricing-period">Forever free</div>
+
+                        <ul class="pricing-features">
+                            <li class="pricing-feature">
+                                <i class="bi bi-check-circle-fill"></i>
+                                Blur any element
+                            </li>
+                            <li class="pricing-feature">
+                                <i class="bi bi-check-circle-fill"></i>
+                                Highlight mode
+                            </li>
+                            <li class="pricing-feature">
+                                <i class="bi bi-check-circle-fill"></i>
+                                Draw regions
+                            </li>
+                            <li class="pricing-feature">
+                                <i class="bi bi-check-circle-fill"></i>
+                                Basic undo/redo
+                            </li>
+                            <li class="pricing-feature">
+                                <i class="bi bi-check-circle-fill"></i>
+                                Adjustable intensity
+                            </li>
+                        </ul>
+
+                        <a href="#" class="btn btn-outline-primary btn-pricing">
+                            Get Started Free
+                        </a>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="100">
+                    <div class="pricing-card featured">
+                        <div class="pricing-badge">MOST POPULAR</div>
+                        <h3 class="pricing-title">Premium</h3>
+                        <div class="pricing-price">$14.99</div>
+                        <div class="pricing-period">One-time payment • Lifetime access</div>
+
+                        <ul class="pricing-features">
+                            <li class="pricing-feature">
+                                <i class="bi bi-check-circle-fill"></i>
+                                Everything in Free
+                            </li>
+                            <li class="pricing-feature">
+                                <i class="bi bi-check-circle-fill"></i>
+                                Unlimited undo/redo history
+                            </li>
+                            <li class="pricing-feature">
+                                <i class="bi bi-check-circle-fill"></i>
+                                Quick select similar elements
+                            </li>
+                            <li class="pricing-feature">
+                                <i class="bi bi-check-circle-fill"></i>
+                                Unlimited custom presets
+                            </li>
+                            <li class="pricing-feature">
+                                <i class="bi bi-check-circle-fill"></i>
+                                Import/export presets
+                            </li>
+                            <li class="pricing-feature">
+                                <i class="bi bi-check-circle-fill"></i>
+                                Priority support
+                            </li>
+                            <li class="pricing-feature">
+                                <i class="bi bi-check-circle-fill"></i>
+                                All future updates
+                            </li>
+                        </ul>
+
+                        <a href="https://blurtkit.online/buy" class="btn btn-light btn-pricing">
+                            Get Premium Now
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-5" data-aos="fade-up">
+                <p class="text-muted">💰 30-day money-back guarantee • 📧 Instant delivery • ⚡ No subscription required</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="testimonials">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="section-title" data-aos="fade-up">Loved by Thousands</h2>
+                <p class="section-subtitle" data-aos="fade-up" data-aos-delay="100">See what our users are saying</p>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-4" data-aos="fade-up" data-aos-delay="0">
+                    <div class="testimonial-card">
+                        <div class="stars mb-2">
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                        </div>
+                        <p class="testimonial-text">"This extension is a game-changer for screen sharing! I can now share my screen without worrying about sensitive data being visible."</p>
+                        <div class="testimonial-author">
+                            <div class="testimonial-avatar">JD</div>
+                            <div>
+                                <div class="testimonial-name">John Doe</div>
+                                <div class="testimonial-role">Software Developer</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
+                    <div class="testimonial-card">
+                        <div class="stars mb-2">
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                        </div>
+                        <p class="testimonial-text">"Perfect for creating professional screenshots and tutorials. The highlight mode is especially useful for presentations!"</p>
+                        <div class="testimonial-author">
+                            <div class="testimonial-avatar">SM</div>
+                            <div>
+                                <div class="testimonial-name">Sarah Miller</div>
+                                <div class="testimonial-role">Content Creator</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
+                    <div class="testimonial-card">
+                        <div class="stars mb-2">
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                        </div>
+                        <p class="testimonial-text">"Simple, powerful, and does exactly what it promises. The premium features are worth every penny. Highly recommended!"</p>
+                        <div class="testimonial-author">
+                            <div class="testimonial-avatar">MJ</div>
+                            <div>
+                                <div class="testimonial-name">Mike Johnson</div>
+                                <div class="testimonial-role">Product Manager</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="faq">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="section-title" data-aos="fade-up">Frequently Asked Questions</h2>
+                <p class="section-subtitle" data-aos="fade-up" data-aos-delay="100">Everything you need to know</p>
+            </div>
+
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="accordion" id="faqAccordion">
+                        <div class="accordion-item" data-aos="fade-up" data-aos-delay="0">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                    How does Element Blur work?
+                                </button>
+                            </h2>
+                            <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Element Blur uses advanced CSS filters to instantly blur or highlight any element on a webpage. All processing happens locally in your browser - no data is sent to external servers, ensuring complete privacy.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item" data-aos="fade-up" data-aos-delay="100">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                    Is my data private?
+                                </button>
+                            </h2>
+                            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Absolutely! Element Blur processes everything locally in your browser. We don't collect, store, or transmit any of your browsing data. Your privacy is our top priority.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item" data-aos="fade-up" data-aos-delay="200">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                    What's the difference between Free and Premium?
+                                </button>
+                            </h2>
+                            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Free version includes core features like blurring, highlighting, and drawing regions. Premium unlocks unlimited undo/redo history, quick select similar elements, custom presets, import/export functionality, and priority support.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item" data-aos="fade-up" data-aos-delay="300">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                                    Can I use it on any website?
+                                </button>
+                            </h2>
+                            <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Yes! Element Blur works on any website you visit. Whether it's social media, banking, email, or any other site, you can blur or highlight content with ease.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item" data-aos="fade-up" data-aos-delay="400">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
+                                    Is it a subscription or one-time payment?
+                                </button>
+                            </h2>
+                            <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Premium is a one-time payment of $14.99 for lifetime access. No subscriptions, no recurring fees. Pay once and enjoy premium features forever, including all future updates.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item" data-aos="fade-up" data-aos-delay="500">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq6">
+                                    What if I'm not satisfied?
+                                </button>
+                            </h2>
+                            <div id="faq6" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    We offer a 30-day money-back guarantee. If you're not completely satisfied with Element Blur Premium, contact us for a full refund, no questions asked.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+        <div class="container text-center position-relative">
+            <div data-aos="zoom-in">
+                <h2>Ready to Take Control?</h2>
+                <p>Join thousands of users who trust Element Blur for their privacy needs</p>
+                <div class="d-flex gap-3 justify-content-center flex-wrap">
+                    <a href="#" class="btn btn-hero btn-hero-primary btn-lg">
+                        <i class="bi bi-download me-2"></i>
+                        Install Free Extension
+                    </a>
+                    <a href="https://blurtkit.online/buy" class="btn btn-hero btn-hero-secondary btn-lg">
+                        <i class="bi bi-star me-2"></i>
+                        Get Premium
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <h5><i class="bi bi-eye-slash-fill"></i> Element Blur</h5>
+                    <p class="text-muted">The most powerful privacy tool for your browser. Blur sensitive content and highlight what matters.</p>
+                    <div class="social-links mt-3">
+                        <a href="#"><i class="bi bi-twitter"></i></a>
+                        <a href="#"><i class="bi bi-github"></i></a>
+                        <a href="#"><i class="bi bi-linkedin"></i></a>
+                        <a href="#"><i class="bi bi-youtube"></i></a>
+                    </div>
+                </div>
+
+                <div class="col-lg-2 col-md-4">
+                    <h5>Product</h5>
+                    <ul class="footer-links">
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#pricing">Pricing</a></li>
+                        <li><a href="#demo">Demo</a></li>
+                        <li><a href="#">Changelog</a></li>
+                    </ul>
+                </div>
+
+                <div class="col-lg-2 col-md-4">
+                    <h5>Support</h5>
+                    <ul class="footer-links">
+                        <li><a href="#faq">FAQ</a></li>
+                        <li><a href="#">Documentation</a></li>
+                        <li><a href="mailto:support@blurtkit.online">Contact</a></li>
+                        <li><a href="#">Status</a></li>
+                    </ul>
+                </div>
+
+                <div class="col-lg-2 col-md-4">
+                    <h5>Company</h5>
+                    <ul class="footer-links">
+                        <li><a href="#">About</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                    </ul>
+                </div>
+
+                <div class="col-lg-2">
+                    <h5>Download</h5>
+                    <ul class="footer-links">
+                        <li><a href="#">Chrome Web Store</a></li>
+                        <li><a href="#">Edge Add-ons</a></li>
+                        <li><a href="#">Source Code</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <hr class="my-4" style="border-color: rgba(255, 255, 255, 0.1);">
+
+            <div class="row align-items-center">
+                <div class="col-md-6 text-center text-md-start">
+                    <p class="mb-0 text-muted">&copy; 2025 Element Blur. All rights reserved.</p>
+                </div>
+                <div class="col-md-6 text-center text-md-end">
+                    <p class="mb-0 text-muted">Made with <i class="bi bi-heart-fill text-danger"></i> for privacy lovers</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- AOS Animation Library -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
+    <script>
+        // Initialize AOS
+        AOS.init({
+            duration: 800,
+            easing: 'ease-in-out',
+            once: true,
+            offset: 100
+        });
+
+        // Navbar scroll effect
+        window.addEventListener('scroll', function() {
+            const navbar = document.querySelector('.navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                const href = this.getAttribute('href');
+                if (href !== '#' && document.querySelector(href)) {
+                    e.preventDefault();
+                    const target = document.querySelector(href);
+                    const offsetTop = target.offsetTop - 80;
+
+                    window.scrollTo({
+                        top: offsetTop,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        // Update Chrome Web Store links (replace with your actual extension ID)
+        const chromeStoreUrl = 'https://chrome.google.com/webstore/detail/YOUR_EXTENSION_ID';
+        document.querySelectorAll('a[href="#"]').forEach(link => {
+            if (link.textContent.includes('Chrome') || link.textContent.includes('Install') || link.textContent.includes('Get Started')) {
+                link.href = chromeStoreUrl;
+                link.target = '_blank';
+            }
+        });
+    </script>
+</body>
+</html>
