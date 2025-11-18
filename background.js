@@ -702,5 +702,4 @@ function createToolbar() {
 
     // Send message to content script to set up event listeners
     window.postMessage({ type: 'SETUP_TOOLBAR' }, '*');
-  });
 }
