@@ -17,39 +17,7 @@ function toggleToolbar() {
     if (overlay) overlay.remove();
     document.body.style.cursor = 'default';
   } else {
-    // Function to ensure Bootstrap Icons CSS is loaded
-    function ensureBootstrapIconsLoaded(callback) {
-      const checkInterval = 50; // Check every 50ms
-      const maxWait = 3000; // Max wait 3 seconds
-      let waited = 0;
-
-      function checkLoaded() {
-        // Check if Bootstrap Icons CSS exists and is loaded
-        const iconLink = document.getElementById('bootstrap-icons-css');
-
-        if (iconLink && iconLink.sheet) {
-          // CSS is loaded, execute callback
-          callback();
-          return;
-        }
-
-        // If Bootstrap Icons not loaded yet, wait
-        waited += checkInterval;
-
-        if (waited >= maxWait) {
-          // Timeout - load anyway with fallback
-          console.warn('[Blurt-ool] Bootstrap Icons CSS load timeout, creating toolbar with fallback');
-          callback();
-          return;
-        }
-
-        // Check again
-        setTimeout(checkLoaded, checkInterval);
-      }
-
-      checkLoaded();
-    }
-
+    // Create toolbar function - icons are now inline SVG so no need to wait
     function createToolbar() {
   const toolbarId = 'blur-toolbar-container';
   const toolbarContainer = document.createElement('div');
@@ -697,9 +665,7 @@ function toggleToolbar() {
       window.postMessage({ type: 'SETUP_TOOLBAR' }, '*');
     }
 
-    // Wait for Bootstrap Icons CSS to be ready before creating toolbar
-    ensureBootstrapIconsLoaded(() => {
-      createToolbar();
-    });
+    // Create toolbar immediately - icons are inline SVG so no CSS loading needed
+    createToolbar();
   }
 }

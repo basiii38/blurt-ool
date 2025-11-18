@@ -251,17 +251,9 @@ function trackBlurAction(element, action) {
 const style = document.createElement('style');
 document.head.appendChild(style);
 
-// Robust Bootstrap Icons loading with fallback to inline SVG
+// Bootstrap Icons using Inline SVG (Works on all sites including those with strict CSP)
 (function loadBootstrapIcons() {
-  if (document.getElementById('bootstrap-icons-css')) {
-    return; // Already loaded
-  }
-
-  let retryCount = 0;
-  const maxRetries = 3;
-  let fallbackTimeout = null;
-
-  // Inline SVG fallback icons (used if CDN fails)
+  // Use inline SVG icons - these work on ALL websites regardless of CSP restrictions
   const inlineSVGIcons = {
     'bi-grip-vertical': '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M7 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/></svg>',
     'bi-droplet-fill': '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 16a6 6 0 0 0 6-6c0-1.655-1.122-2.904-2.432-4.362C10.254 4.176 8.75 2.503 8 0c0 0-6 5.686-6 10a6 6 0 0 0 6 6ZM6.646 4.646l.708.708c-.29.29-1.128 1.311-1.907 2.87l-.894-.448c.82-1.641 1.717-2.753 2.093-3.13Z"/></svg>',
@@ -304,80 +296,27 @@ document.head.appendChild(style);
 
   // Function to check if icons loaded successfully
   function checkIconsLoaded() {
-    // Reduced wait time for faster UI response
-    setTimeout(() => {
-      const testIcon = document.createElement('i');
-      testIcon.className = 'bi bi-droplet-fill';
-      testIcon.style.position = 'absolute';
-      testIcon.style.visibility = 'hidden';
-      document.body.appendChild(testIcon);
-
-      const computedStyle = window.getComputedStyle(testIcon);
-      const hasContent = computedStyle.getPropertyValue('content') !== 'none';
-      const hasFontFamily = computedStyle.getPropertyValue('font-family').includes('bootstrap-icons');
-
-      document.body.removeChild(testIcon);
-
-      if (!hasContent && !hasFontFamily) {
-        console.warn('[Blurt-ool] Bootstrap Icons CSS not working, using inline SVG fallback');
-        applyInlineSVGFallbacks();
-      } else {
-        console.log('[Blurt-ool] Bootstrap Icons CSS loaded and working');
-      }
-    }, 100); // Reduced from 500ms to 100ms
-  }
-
-  // Attempt to load Bootstrap Icons from CDN with retry
-  function attemptCDNLoad() {
-    const iconLink = document.createElement('link');
-    iconLink.id = 'bootstrap-icons-css';
-    iconLink.rel = 'stylesheet';
-    iconLink.href = 'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css';
-    iconLink.crossOrigin = 'anonymous';
-
-    iconLink.onload = () => {
-      console.log('[Blurt-ool] Bootstrap Icons CSS loaded from CDN successfully');
-      clearTimeout(fallbackTimeout);
-      checkIconsLoaded();
-    };
-
-    iconLink.onerror = () => {
-      console.error(`[Blurt-ool] Failed to load Bootstrap Icons CSS (attempt ${retryCount + 1}/${maxRetries})`);
-      iconLink.remove();
-
-      if (retryCount < maxRetries) {
-        retryCount++;
-        setTimeout(attemptCDNLoad, 1000 * retryCount); // Exponential backoff
-      } else {
-        console.warn('[Blurt-ool] All CDN attempts failed, using inline SVG fallbacks');
-        applyInlineSVGFallbacks();
-      }
-    };
-
-    document.head.appendChild(iconLink);
-  }
-
-  // Set fallback timeout - if CDN takes too long, use inline SVG
-  fallbackTimeout = setTimeout(() => {
-    console.warn('[Blurt-ool] CDN loading timeout, using inline SVG fallbacks');
+    // Skip font loading entirely and use inline SVG immediately
+    // This works on ALL websites regardless of CSP restrictions
+    console.log('[Blurt-ool] Using inline SVG icons for maximum compatibility');
     applyInlineSVGFallbacks();
-  }, 5000); // 5 second timeout
+  }
 
-  // Start loading process
-  attemptCDNLoad();
+  // Initialize icons immediately - no CDN loading
+  // This ensures icons work on all websites, even those with strict CSP
+  checkIconsLoaded();
 
-  // Also watch for dynamically added icons
+  // Also watch for dynamically added icons (like toolbar when it's injected)
   const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
       mutation.addedNodes.forEach((node) => {
-        if (node.nodeType === 1 && node.querySelector && node.querySelector('i[class*="bi-"]')) {
-          // New icons added, recheck if fallback needed
-          setTimeout(() => {
-            if (!document.getElementById('bootstrap-icons-css') ||
-                !document.getElementById('bootstrap-icons-css').sheet) {
-              applyInlineSVGFallbacks();
-            }
-          }, 100);
+        if (node.nodeType === 1) {
+          // Check if the node itself or any child has icon classes
+          if (node.classList && node.classList.toString().includes('bi-')) {
+            applyInlineSVGFallbacks();
+          } else if (node.querySelector && node.querySelector('i[class*="bi-"]')) {
+            applyInlineSVGFallbacks();
+          }
         }
       });
     });
