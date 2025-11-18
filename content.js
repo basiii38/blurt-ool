@@ -423,6 +423,20 @@ function exitSelectMode() {
     lastHighlightedElement.classList.remove('element-highlight');
     lastHighlightedElement = null;
   }
+
+  // Clear multi-select state and panel
+  if (multiSelectElements.length > 0) {
+    multiSelectElements.forEach(el => {
+      if (el.style.outline) {
+        el.style.outline = '';
+        el.style.outlineOffset = '';
+        el.style.boxShadow = '';
+      }
+    });
+    multiSelectElements = [];
+  }
+  hideMultiSelectPanel();
+
   isSelecting = false;
   updateBlurStyle(); // Update cursor
   setActiveTool(null); // Clear active tool state
@@ -436,6 +450,168 @@ function exitTextSelectMode() {
   isSelectingText = false;
   updateBlurStyle(); // Update cursor
   setActiveTool(null); // Clear active tool state
+}
+
+// Multi-select panel management
+function showMultiSelectPanel() {
+  let panel = document.getElementById('blur-multi-select-panel');
+
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'blur-multi-select-panel';
+    panel.className = 'blur-multi-select-panel';
+    panel.style.cssText = `
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 16px 24px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4);
+      z-index: 2147483646;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      animation: slideUp 0.3s ease;
+    `;
+
+    const countText = document.createElement('div');
+    countText.id = 'blur-multi-select-count';
+    countText.style.cssText = `
+      font-weight: 600;
+      font-size: 16px;
+    `;
+
+    const instructionText = document.createElement('div');
+    instructionText.style.cssText = `
+      font-size: 13px;
+      opacity: 0.9;
+    `;
+    instructionText.textContent = 'Hold Shift + Click to add more elements';
+
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.cssText = `
+      display: flex;
+      gap: 8px;
+      margin-left: 8px;
+    `;
+
+    const applyBtn = document.createElement('button');
+    applyBtn.textContent = `✓ Apply ${isHighlightMode ? 'Highlight' : 'Blur'}`;
+    applyBtn.style.cssText = `
+      background: white;
+      color: #667eea;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    `;
+    applyBtn.onmouseover = () => applyBtn.style.transform = 'scale(1.05)';
+    applyBtn.onmouseout = () => applyBtn.style.transform = 'scale(1)';
+    applyBtn.onclick = () => applyMultiSelect();
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = '✕ Cancel';
+    cancelBtn.style.cssText = `
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    `;
+    cancelBtn.onmouseover = () => cancelBtn.style.background = 'rgba(255, 255, 255, 0.3)';
+    cancelBtn.onmouseout = () => cancelBtn.style.background = 'rgba(255, 255, 255, 0.2)';
+    cancelBtn.onclick = () => cancelMultiSelect();
+
+    buttonContainer.appendChild(applyBtn);
+    buttonContainer.appendChild(cancelBtn);
+
+    panel.appendChild(countText);
+    panel.appendChild(instructionText);
+    panel.appendChild(buttonContainer);
+    document.body.appendChild(panel);
+  }
+
+  updateMultiSelectPanel();
+}
+
+function updateMultiSelectPanel() {
+  const panel = document.getElementById('blur-multi-select-panel');
+  const countText = document.getElementById('blur-multi-select-count');
+
+  if (panel && countText) {
+    const count = multiSelectElements.length;
+    countText.textContent = `${count} element${count !== 1 ? 's' : ''} selected`;
+
+    if (count === 0) {
+      hideMultiSelectPanel();
+    }
+  }
+}
+
+function hideMultiSelectPanel() {
+  const panel = document.getElementById('blur-multi-select-panel');
+  if (panel) {
+    panel.remove();
+  }
+}
+
+async function applyMultiSelect() {
+  if (multiSelectElements.length === 0) return;
+
+  // Apply blur/highlight to all selected elements
+  multiSelectElements.forEach(el => {
+    // Remove selection outline
+    if (el.style.outline) {
+      el.style.outline = '';
+      el.style.outlineOffset = '';
+    }
+
+    if (isHighlightMode) {
+      el.classList.add('highlighted');
+      trackBlurAction(el, 'highlighted');
+    } else {
+      el.classList.add('blurred');
+      trackBlurAction(el, 'blurred');
+    }
+  });
+
+  // Show notification
+  showNotification(`${isHighlightMode ? 'Highlighted' : 'Blurred'} ${multiSelectElements.length} elements`);
+
+  // Clear multi-select
+  multiSelectElements = [];
+  hideMultiSelectPanel();
+  exitSelectMode();
+
+  // Auto-save if Keep Blur is enabled
+  await autoSaveIfKeepBlurEnabled();
+}
+
+function cancelMultiSelect() {
+  // Remove selection outlines
+  multiSelectElements.forEach(el => {
+    if (el.style.outline) {
+      el.style.outline = '';
+      el.style.outlineOffset = '';
+    }
+  });
+
+  // Clear selection
+  multiSelectElements = [];
+  hideMultiSelectPanel();
+  updateStatusIndicator();
 }
 
 function highlightElement(element) {
@@ -2586,14 +2762,25 @@ document.addEventListener('mousemove', (event) => {
 
 document.addEventListener('click', async (event) => {
   if (isSelecting) {
+    const element = document.elementFromPoint(event.clientX, event.clientY);
+
+    // Allow clicks on toolbar, overlay, and extension UI elements to pass through
+    // This fixes the bug where you can't switch tools while in select mode
+    if (element && (
+        element.closest('#blur-toolbar-container') ||
+        element.id === 'blur-mode-overlay' ||
+        element.closest('.blur-preset-modal') ||
+        element.closest('.blur-multi-select-panel'))) {
+      // Let the click event pass through to toolbar buttons
+      return;
+    }
+
+    // Now prevent default for actual element selection
     event.preventDefault();
     event.stopPropagation();
-    const element = document.elementFromPoint(event.clientX, event.clientY);
+
     // Exclude toolbar, overlay, and extension UI elements
-    if (element &&
-        !element.closest('#blur-toolbar-container') &&
-        element.id !== 'blur-mode-overlay' &&
-        !element.closest('.blur-preset-modal')) {
+    if (element) {
 
       // Check if Shift key is held for multi-select
       const isShiftHeld = event.shiftKey;
@@ -2607,49 +2794,51 @@ document.addEventListener('click', async (event) => {
           // Multi-select mode: Add element to selection
           if (!multiSelectElements.includes(element)) {
             multiSelectElements.push(element);
-            // Add visual indicator for selected elements
-            element.style.outline = '3px dashed #4CAF50';
+            // Add enhanced visual indicator for selected elements
+            element.style.outline = '3px solid #4CAF50';
             element.style.outlineOffset = '2px';
+            element.style.boxShadow = '0 0 0 1px white, 0 0 0 4px #4CAF50';
             console.log('[Blurt-ool] Multi-select: Added element. Total selected:', multiSelectElements.length);
+
+            // Show/update multi-select panel
+            showMultiSelectPanel();
             updateStatusIndicator(); // Update status to show selection count
+          } else {
+            // Deselect if clicking same element again with Shift
+            const index = multiSelectElements.indexOf(element);
+            multiSelectElements.splice(index, 1);
+            element.style.outline = '';
+            element.style.outlineOffset = '';
+            element.style.boxShadow = '';
+            updateMultiSelectPanel();
+            updateStatusIndicator();
           }
           // Keep selection mode active
           return false;
         } else {
-          // Single select or apply multi-select
-          const elementsToProcess = multiSelectElements.length > 0 ? [...multiSelectElements, element] : [element];
-
-          // Apply blur/highlight to all selected elements
-          elementsToProcess.forEach(el => {
-            // Remove selection outline
-            if (el.style.outline) {
-              el.style.outline = '';
-              el.style.outlineOffset = '';
-            }
-
+          // Single select (no multi-select active)
+          if (multiSelectElements.length === 0) {
+            // Direct single element blur/highlight
             if (isHighlightMode) {
-              el.classList.toggle('highlighted');
-              if (el.classList.contains('highlighted')) {
-                trackBlurAction(el, 'highlighted');
+              element.classList.toggle('highlighted');
+              if (element.classList.contains('highlighted')) {
+                trackBlurAction(element, 'highlighted');
               }
             } else {
-              el.classList.toggle('blurred');
-              if (el.classList.contains('blurred')) {
-                trackBlurAction(el, 'blurred');
+              element.classList.toggle('blurred');
+              if (element.classList.contains('blurred')) {
+                trackBlurAction(element, 'blurred');
               }
             }
-          });
 
-          // Show notification
-          if (elementsToProcess.length > 1) {
-            showNotification(`${isHighlightMode ? 'Highlighted' : 'Blurred'} ${elementsToProcess.length} elements`);
+            exitSelectMode();
+            // Auto-save if Keep Blur is enabled
+            await autoSaveIfKeepBlurEnabled();
+          } else {
+            // User clicked without Shift - treat as final selection and apply
+            multiSelectElements.push(element);
+            await applyMultiSelect();
           }
-
-          // Clear multi-select
-          multiSelectElements = [];
-          exitSelectMode();
-          // Auto-save if Keep Blur is enabled
-          await autoSaveIfKeepBlurEnabled();
         }
       }
     }
@@ -2892,6 +3081,17 @@ function showToast(message, type = 'info', duration = 3000) {
       to {
         opacity: 1;
         transform: translateX(0);
+      }
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
       }
     }
 
