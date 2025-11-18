@@ -1,6 +1,17 @@
 // License Key System for Element Blur Premium
 // Supports offline validation after initial activation
 
+// Helper function to check if extension context is still valid
+function isExtensionContextValid() {
+  try {
+    // Try to access chrome.runtime.id - if it throws, context is invalid
+    return !!(chrome && chrome.runtime && chrome.runtime.id);
+  } catch (e) {
+    console.warn('[Blurt-ool License] Extension context invalidated. Please refresh the page.');
+    return false;
+  }
+}
+
 const LICENSE_CONFIG = {
   // Your API endpoint (replace with actual URL when ready)
   API_URL: 'https://your-domain.com/api/validate-license',
@@ -25,6 +36,12 @@ const LICENSE_CONFIG = {
  * @returns {Promise<boolean>}
  */
 async function isPremium() {
+  // Check if extension context is valid
+  if (!isExtensionContextValid()) {
+    console.warn('[Blurt-ool License] Cannot check premium status: Extension context invalidated');
+    return false;
+  }
+
   try {
     const data = await chrome.storage.local.get([
       LICENSE_CONFIG.VERIFIED_KEY,
@@ -56,6 +73,10 @@ async function isPremium() {
  * @returns {Promise<number>}
  */
 async function getTrialUses() {
+  if (!isExtensionContextValid()) {
+    return 0;
+  }
+
   try {
     const data = await chrome.storage.local.get([LICENSE_CONFIG.TRIAL_USES_KEY]);
     const uses = data[LICENSE_CONFIG.TRIAL_USES_KEY] || 0;
@@ -69,6 +90,10 @@ async function getTrialUses() {
  * Increment trial usage counter
  */
 async function incrementTrialUse() {
+  if (!isExtensionContextValid()) {
+    return;
+  }
+
   try {
     const data = await chrome.storage.local.get([LICENSE_CONFIG.TRIAL_USES_KEY]);
     const currentUses = data[LICENSE_CONFIG.TRIAL_USES_KEY] || 0;
@@ -222,6 +247,13 @@ async function validateLicenseOnline(key, email = '') {
  * @returns {Promise<{success: boolean, message: string}>}
  */
 async function activateLicense(key, email = '') {
+  if (!isExtensionContextValid()) {
+    return {
+      success: false,
+      message: 'Extension context invalidated. Please refresh the page.'
+    };
+  }
+
   try {
     // Validate with API
     const validation = await validateLicenseOnline(key, email);
@@ -258,6 +290,10 @@ async function activateLicense(key, email = '') {
  * Revalidate existing license (called periodically)
  */
 async function revalidateLicense() {
+  if (!isExtensionContextValid()) {
+    return false;
+  }
+
   try {
     const data = await chrome.storage.local.get([
       LICENSE_CONFIG.STORAGE_KEY,
@@ -293,6 +329,10 @@ async function revalidateLicense() {
  * Deactivate/remove license
  */
 async function deactivateLicense() {
+  if (!isExtensionContextValid()) {
+    return;
+  }
+
   await chrome.storage.local.remove([
     LICENSE_CONFIG.STORAGE_KEY,
     LICENSE_CONFIG.VERIFIED_KEY,
@@ -306,6 +346,17 @@ async function deactivateLicense() {
  * @returns {Promise<object>}
  */
 async function getLicenseInfo() {
+  if (!isExtensionContextValid()) {
+    return {
+      isPremium: false,
+      licenseKey: null,
+      email: null,
+      verifiedDate: null,
+      trialUsesRemaining: 0,
+      maxTrialUses: LICENSE_CONFIG.MAX_TRIAL_USES
+    };
+  }
+
   try {
     const data = await chrome.storage.local.get([
       LICENSE_CONFIG.STORAGE_KEY,
