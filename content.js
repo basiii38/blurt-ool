@@ -293,7 +293,7 @@ document.head.appendChild(style);
 
   // Function to check if icons loaded successfully
   function checkIconsLoaded() {
-    // Wait a bit for CSS to apply
+    // Reduced wait time for faster UI response
     setTimeout(() => {
       const testIcon = document.createElement('i');
       testIcon.className = 'bi bi-droplet-fill';
@@ -313,7 +313,7 @@ document.head.appendChild(style);
       } else {
         console.log('[Blurt-ool] Bootstrap Icons CSS loaded and working');
       }
-    }, 500);
+    }, 100); // Reduced from 500ms to 100ms
   }
 
   // Attempt to load Bootstrap Icons from CDN with retry
