@@ -34,6 +34,17 @@ const BLUR_PRESETS = {
 // Custom presets storage
 let customPresets = [];
 
+// Helper function to check if extension context is still valid
+function isExtensionContextValid() {
+  try {
+    // Try to access chrome.runtime.id - if it throws, context is invalid
+    return !!(chrome && chrome.runtime && chrome.runtime.id);
+  } catch (e) {
+    console.warn('[Blurt-ool] Extension context invalidated. Please refresh the page.');
+    return false;
+  }
+}
+
 // Clear all blur and highlight effects
 // @param {boolean} clearStorage - If true, also delete saved state from storage (default: true)
 async function clearAllBlurs(clearStorage = true) {
@@ -56,7 +67,7 @@ async function clearAllBlurs(clearStorage = true) {
 
   // Only clear saved state if explicitly requested (e.g., user clicked Clear All button)
   // Don't clear when we're just preparing DOM to load saved state
-  if (clearStorage) {
+  if (clearStorage && isExtensionContextValid()) {
     const domain = getCurrentDomain();
     try {
       const result = await chrome.storage.local.get(['blurConfigs']);
@@ -748,6 +759,12 @@ function getCurrentDomain() {
 
 // Check storage quota and warn if approaching limit
 async function checkStorageQuota() {
+  // Check if extension context is valid
+  if (!isExtensionContextValid()) {
+    console.warn('[Blurt-ool] Cannot check storage quota: Extension context invalidated');
+    return { allowed: true, percentage: 0, size: 0 };
+  }
+
   try {
     const result = await chrome.storage.local.get(null);
     const dataSize = JSON.stringify(result).length;
@@ -965,6 +982,12 @@ function getElementSelector(element) {
 }
 
 async function saveCurrentState(silent = false) {
+  // Check if extension context is valid
+  if (!isExtensionContextValid()) {
+    console.warn('[Blurt-ool] Cannot save state: Extension context invalidated');
+    return false;
+  }
+
   const domain = getCurrentDomain();
   const state = serializeBlurState();
 
@@ -999,6 +1022,12 @@ async function saveCurrentState(silent = false) {
 }
 
 async function loadSavedState(showNoConfigNotification = true) {
+  // Check if extension context is valid
+  if (!isExtensionContextValid()) {
+    console.warn('[Blurt-ool] Cannot load state: Extension context invalidated');
+    return false;
+  }
+
   const domain = getCurrentDomain();
 
   console.log('[Blurt-ool] Loading state for', domain);
@@ -1042,7 +1071,10 @@ async function loadSavedState(showNoConfigNotification = true) {
     return false;
   } catch (error) {
     console.error('Error loading state:', error);
-    showNotification('Error loading configuration', true);
+    // Don't show notification if context is invalidated
+    if (isExtensionContextValid()) {
+      showNotification('Error loading configuration', true);
+    }
     return false;
   }
 }
@@ -1452,6 +1484,12 @@ async function quickSelectElements(selector, description) {
 
 // Load custom presets from storage
 async function loadCustomPresets() {
+  // Check if extension context is valid
+  if (!isExtensionContextValid()) {
+    console.warn('[Blurt-ool] Cannot load custom presets: Extension context invalidated');
+    return [];
+  }
+
   try {
     const result = await chrome.storage.local.get(['customPresets']);
     customPresets = result.customPresets || [];
@@ -1464,6 +1502,12 @@ async function loadCustomPresets() {
 
 // Save custom presets to storage
 async function saveCustomPresets() {
+  // Check if extension context is valid
+  if (!isExtensionContextValid()) {
+    console.warn('[Blurt-ool] Cannot save custom presets: Extension context invalidated');
+    return false;
+  }
+
   try {
     // Check storage quota before saving
     const quotaCheck = await checkStorageQuota();
