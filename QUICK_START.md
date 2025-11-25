@@ -38,8 +38,9 @@ API_URL: 'https://element-blur-license-api.YOUR_SUBDOMAIN.workers.dev',
 1. Go to https://paddle.com
 2. Create account (see PADDLE_BEGINNER_GUIDE.md for detailed steps)
 3. Create new product:
-   - Name: "Blurt-ool Premium"
-   - Price: $9.99/month (or one-time payment)
+   - Name: "Blurt-ool Premium - Lifetime License"
+   - Price: $14.99
+   - Billing Type: **One-time payment** (NOT subscription)
 4. Copy product ID
 
 ### Step 5: Update Extension URLs (1 min)

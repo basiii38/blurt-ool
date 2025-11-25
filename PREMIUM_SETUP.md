@@ -70,9 +70,9 @@ Quick overview:
 1. **Create Paddle account**: https://paddle.com
 
 2. **Create Product:**
-   - Product name: "Blurt-ool Premium"
-   - Price: $9.99/month
-   - Subscription or one-time payment
+   - Product name: "Blurt-ool Premium - Lifetime License"
+   - Price: $14.99
+   - Billing Type: **One-time payment** (lifetime access, NOT subscription)
 
 3. **API Integration:**
    - Get API key from Developer Tools
@@ -81,7 +81,10 @@ Quick overview:
 
 4. **Webhook Setup:**
    - Webhook URL: Your Cloudflare Worker endpoint
-   - Events: subscription.created, updated, cancelled, etc.
+   - Events for one-time purchases:
+     - transaction.completed (generates license key)
+     - transaction.refunded (revokes license)
+     - transaction.payment_failed (logs failures)
 
 5. **Update Extension:**
    - Update checkout link in `premium-ui.js` to point to your website

@@ -80,28 +80,28 @@ Customer enters this in your extension → Extension checks with your API → Pr
 
 ## Revenue Example
 
-Let's say you charge **$9.99/month** for premium:
+Let's say you charge **$14.99 one-time** for lifetime premium access:
 
 ### Money Flow
 
 ```
-Customer Pays: $9.99
+Customer Pays: $14.99 (one-time)
     ↓
-Paddle Takes: $1.00 (fee: 5% + $0.50)
+Paddle Takes: ~$1.25 (fee: 5% + $0.50)
 Paddle Takes: Handles all taxes
     ↓
-You Receive: ~$8.99
+You Receive: ~$13.74
 ```
 
 **With 100 customers:**
-- Monthly Revenue: $999
-- Paddle Fees: ~$100
-- Your Profit: ~$899/month
+- Total Revenue: $1,499 (one-time)
+- Paddle Fees: ~$125
+- Your Profit: ~$1,374
 
 **With 1,000 customers:**
-- Monthly Revenue: $9,990
-- Paddle Fees: ~$1,000
-- Your Profit: ~$8,990/month
+- Total Revenue: $14,990 (one-time)
+- Paddle Fees: ~$1,250
+- Your Profit: ~$13,740
 
 ---
 
@@ -184,14 +184,14 @@ Here's how everything connects:
 1. Log into Paddle dashboard
 2. Click "Products" → "New Product"
 3. Fill in:
-   - **Name:** Blurt-ool Premium
-   - **Price:** $9.99
-   - **Interval:** Monthly
-   - **Trial:** 7 days (optional)
+   - **Name:** Blurt-ool Premium - Lifetime License
+   - **Price:** $14.99
+   - **Billing type:** One-time payment
+   - **Description:** Lifetime access to all premium features
 4. Click "Save"
 5. Copy the Product ID (looks like: `pro_abc123...`)
 
-**Why this matters:** This creates your pricing plan
+**Why this matters:** This creates your one-time payment product
 
 ---
 

@@ -49,11 +49,6 @@ export default {
       return handlePaddleWebhook(request, env, corsHeaders);
     }
 
-    // Route: Get subscription info (optional)
-    if (url.pathname === '/subscription' && request.method === 'GET') {
-      return handleGetSubscription(request, env, corsHeaders);
-    }
-
     // 404 for unknown routes
     return new Response(
       JSON.stringify({ error: 'Not found' }),
@@ -95,10 +90,10 @@ async function handleLicenseValidation(request, env, corsHeaders) {
       );
     }
 
-    // Get subscription ID from license key (stored in KV or database)
-    const subscriptionId = await getSubscriptionIdFromLicense(license_key, env);
+    // Get purchase record from license key (stored in KV or database)
+    const purchaseRecord = await getPurchaseFromLicense(license_key, env);
 
-    if (!subscriptionId) {
+    if (!purchaseRecord) {
       return jsonResponse(
         { valid: false, message: 'Invalid license key' },
         401,
@@ -106,29 +101,23 @@ async function handleLicenseValidation(request, env, corsHeaders) {
       );
     }
 
-    // Validate subscription with Paddle API
-    const subscription = await getPaddleSubscription(subscriptionId, env);
-
-    if (!subscription) {
+    // Verify email if provided
+    if (email && purchaseRecord.customer_email !== email) {
       return jsonResponse(
-        { valid: false, message: 'Subscription not found' },
-        404,
+        { valid: false, message: 'Email does not match purchase record' },
+        403,
         corsHeaders
       );
     }
 
-    // Check subscription status
-    const validStatuses = ['active', 'trialing'];
-    const isValid = validStatuses.includes(subscription.status);
-
-    if (!isValid) {
+    // Check if license is revoked or refunded
+    if (purchaseRecord.status === 'refunded' || purchaseRecord.status === 'revoked') {
       return jsonResponse(
         {
           valid: false,
-          message: `Subscription is ${subscription.status}`,
+          message: `License has been ${purchaseRecord.status}`,
           data: {
-            status: subscription.status,
-            customer_email: subscription.customer_email
+            status: purchaseRecord.status
           }
         },
         403,
@@ -136,26 +125,17 @@ async function handleLicenseValidation(request, env, corsHeaders) {
       );
     }
 
-    // Verify email if provided
-    if (email && subscription.customer_email !== email) {
-      return jsonResponse(
-        { valid: false, message: 'Email does not match subscription' },
-        403,
-        corsHeaders
-      );
-    }
-
-    // License is valid!
+    // License is valid! (one-time purchase = lifetime access)
     return jsonResponse(
       {
         valid: true,
         message: 'License activated successfully',
         data: {
-          email: subscription.customer_email,
-          customer_name: subscription.customer_name || null,
-          product_name: 'Blurt-ool Premium',
-          status: subscription.status,
-          next_payment: subscription.next_payment?.date || null,
+          email: purchaseRecord.customer_email,
+          customer_name: purchaseRecord.customer_name || null,
+          product_name: 'Blurt-ool Premium - Lifetime License',
+          license_type: 'lifetime',
+          purchased_at: purchaseRecord.purchased_at,
           activated_at: new Date().toISOString(),
         }
       },
@@ -200,32 +180,18 @@ async function handlePaddleWebhook(request, env, corsHeaders) {
 
     // Handle different event types
     switch (event.event_type) {
-      case 'subscription.created':
-        await handleSubscriptionCreated(event.data, env);
-        break;
-
-      case 'subscription.updated':
-        await handleSubscriptionUpdated(event.data, env);
-        break;
-
-      case 'subscription.cancelled':
-        await handleSubscriptionCancelled(event.data, env);
-        break;
-
-      case 'subscription.paused':
-        await handleSubscriptionPaused(event.data, env);
-        break;
-
-      case 'subscription.resumed':
-        await handleSubscriptionResumed(event.data, env);
-        break;
-
       case 'transaction.completed':
+        // One-time purchase completed - generate license key
         await handleTransactionCompleted(event.data, env);
         break;
 
       case 'transaction.payment_failed':
         await handlePaymentFailed(event.data, env);
+        break;
+
+      case 'transaction.refunded':
+        // Customer refunded - revoke license
+        await handleTransactionRefunded(event.data, env);
         break;
 
       default:
@@ -245,161 +211,88 @@ async function handlePaddleWebhook(request, env, corsHeaders) {
 }
 
 // ============================================================================
-// Get Subscription Info Handler
-// ============================================================================
-async function handleGetSubscription(request, env, corsHeaders) {
-  try {
-    const url = new URL(request.url);
-    const subscriptionId = url.searchParams.get('id');
-
-    if (!subscriptionId) {
-      return jsonResponse(
-        { error: 'Subscription ID required' },
-        400,
-        corsHeaders
-      );
-    }
-
-    const subscription = await getPaddleSubscription(subscriptionId, env);
-
-    if (!subscription) {
-      return jsonResponse(
-        { error: 'Subscription not found' },
-        404,
-        corsHeaders
-      );
-    }
-
-    return jsonResponse(
-      { subscription },
-      200,
-      corsHeaders
-    );
-
-  } catch (error) {
-    console.error('Get subscription error:', error);
-    return jsonResponse(
-      { error: error.message },
-      500,
-      corsHeaders
-    );
-  }
-}
-
-// ============================================================================
 // Paddle API Functions
 // ============================================================================
 
 /**
- * Get subscription details from Paddle API
+ * Get purchase record from license key
+ * This uses Cloudflare KV storage to map license key -> purchase data
  */
-async function getPaddleSubscription(subscriptionId, env) {
-  const apiUrl = env.PADDLE_SANDBOX === 'true'
-    ? 'https://sandbox-api.paddle.com'
-    : 'https://api.paddle.com';
-
-  const response = await fetch(`${apiUrl}/subscriptions/${subscriptionId}`, {
-    headers: {
-      'Authorization': `Bearer ${env.PADDLE_API_KEY}`,
-      'Content-Type': 'application/json'
-    }
-  });
-
-  if (!response.ok) {
-    if (response.status === 404) {
-      return null;
-    }
-    throw new Error(`Paddle API error: ${response.status}`);
-  }
-
-  const result = await response.json();
-  return result.data;
-}
-
-/**
- * Get subscription ID from license key
- * This would typically use Cloudflare KV storage
- */
-async function getSubscriptionIdFromLicense(licenseKey, env) {
+async function getPurchaseFromLicense(licenseKey, env) {
   // If you have KV storage bound:
-  // return await env.LICENSE_KV.get(licenseKey);
+  // const purchaseData = await env.LICENSE_KV.get(licenseKey, { type: 'json' });
+  // return purchaseData;
 
-  // For now, extract from license key pattern (example implementation)
-  // In production, use proper KV storage mapping
-
-  // You could also call Paddle API to search subscriptions
-  // This is a placeholder - implement based on your storage strategy
+  // TODO: Implement KV storage lookup
+  // For now, return null - you need to set up KV storage
+  // See: https://developers.cloudflare.com/workers/runtime-apis/kv/
 
   return null; // TODO: Implement KV storage lookup
 }
 
 /**
- * Store license key to subscription ID mapping
+ * Store license key to purchase data mapping
  */
-async function storeLicenseMapping(licenseKey, subscriptionId, env) {
+async function storeLicenseMapping(licenseKey, purchaseData, env) {
   // If you have KV storage bound:
-  // await env.LICENSE_KV.put(licenseKey, subscriptionId);
+  // await env.LICENSE_KV.put(licenseKey, JSON.stringify(purchaseData));
 
   // TODO: Implement KV storage
-  console.log(`TODO: Store mapping ${licenseKey} -> ${subscriptionId}`);
+  console.log(`TODO: Store license ${licenseKey} with purchase data:`, purchaseData);
 }
 
 // ============================================================================
 // Webhook Event Handlers
 // ============================================================================
 
-async function handleSubscriptionCreated(data, env) {
-  console.log('Subscription created:', data.id);
-
-  // Generate license key
-  const licenseKey = generateLicenseKey(data.id);
-
-  // Store license key mapping
-  await storeLicenseMapping(licenseKey, data.id, env);
-
-  // TODO: Send license key to customer via email
-  // You can use a service like SendGrid, Resend, or Mailgun
-  console.log(`Generated license key: ${licenseKey} for subscription: ${data.id}`);
-  console.log(`Customer email: ${data.customer_email}`);
-}
-
-async function handleSubscriptionUpdated(data, env) {
-  console.log('Subscription updated:', data.id, 'Status:', data.status);
-
-  // Handle any status changes
-  if (data.status === 'past_due') {
-    console.log('Subscription past due - customer payment failed');
-    // Optionally notify customer
-  }
-}
-
-async function handleSubscriptionCancelled(data, env) {
-  console.log('Subscription cancelled:', data.id);
-
-  // License will remain valid until the end of billing period
-  // Paddle handles this automatically via subscription status
-}
-
-async function handleSubscriptionPaused(data, env) {
-  console.log('Subscription paused:', data.id);
-}
-
-async function handleSubscriptionResumed(data, env) {
-  console.log('Subscription resumed:', data.id);
-}
-
 async function handleTransactionCompleted(data, env) {
   console.log('Transaction completed:', data.id);
   console.log('Amount:', data.details?.totals?.total, data.currency_code);
+  console.log('Customer:', data.customer_id);
 
-  // Transaction successful - subscription is active
+  // Generate license key for the purchase
+  const licenseKey = generateLicenseKey(data.id);
+
+  // Prepare purchase data to store
+  const purchaseData = {
+    transaction_id: data.id,
+    customer_id: data.customer_id,
+    customer_email: data.customer_email || 'unknown',
+    customer_name: data.customer_name || null,
+    product_id: data.items?.[0]?.price?.product_id || null,
+    amount: data.details?.totals?.total || 0,
+    currency: data.currency_code || 'USD',
+    status: 'active',
+    purchased_at: data.created_at || new Date().toISOString(),
+  };
+
+  // Store license key with purchase data
+  await storeLicenseMapping(licenseKey, purchaseData, env);
+
+  // TODO: Send license key to customer via email
+  // You can use a service like SendGrid, Resend, or Mailgun
+  console.log(`Generated license key: ${licenseKey}`);
+  console.log(`Customer email: ${purchaseData.customer_email}`);
+  console.log(`Purchase data:`, purchaseData);
 }
 
 async function handlePaymentFailed(data, env) {
   console.log('Payment failed:', data.id);
+  console.log('Customer:', data.customer_id);
 
-  // Paddle will automatically retry failed payments
-  // Notify customer if needed
+  // Payment failed - no license key generated
+  // Customer will need to try again
+}
+
+async function handleTransactionRefunded(data, env) {
+  console.log('Transaction refunded:', data.id);
+
+  // TODO: Mark license as refunded in KV storage
+  // You would need to look up the license key by transaction ID
+  // and update its status to 'refunded'
+
+  // For now, just log it
+  console.log('TODO: Revoke license for transaction:', data.id);
 }
 
 // ============================================================================
@@ -407,11 +300,11 @@ async function handlePaymentFailed(data, env) {
 // ============================================================================
 
 /**
- * Generate a license key from subscription ID
+ * Generate a license key from transaction ID
  */
-function generateLicenseKey(subscriptionId) {
+function generateLicenseKey(transactionId) {
   // Simple implementation - in production, use crypto for security
-  const hash = subscriptionId.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+  const hash = transactionId.replace(/[^A-Z0-9]/gi, '').toUpperCase();
   const parts = [];
 
   // Extract 4 segments of 4 characters each

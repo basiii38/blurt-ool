@@ -66,13 +66,13 @@ Paddle is a complete payment infrastructure platform that handles:
 └─────────────────┘
 ```
 
-### Cost Breakdown (Example: $9.99/month subscription)
+### Cost Breakdown (Example: $14.99 one-time payment)
 
 | Item | Amount | Details |
 |------|--------|---------|
-| Customer Pays | $9.99 | Listed price |
-| Paddle Fee (5% + $0.50) | -$1.00 | Transaction fee |
-| Your Revenue | **$8.99** | **90% profit margin** |
+| Customer Pays | $14.99 | One-time lifetime license |
+| Paddle Fee (5% + $0.50) | -$1.25 | Transaction fee |
+| Your Revenue | **$13.74** | **92% profit margin** |
 
 *Paddle automatically handles all taxes and compliance.*
 
@@ -139,17 +139,16 @@ Paddle will review your account and may request:
 1. **Go to:** Products → New Product
 2. **Product Details:**
    ```
-   Name: Blurt-ool Premium
-   Description: Premium features for Blurt-ool Chrome extension
-   Type: Subscription
+   Name: Blurt-ool Premium - Lifetime License
+   Description: One-time payment for lifetime access to all premium features
+   Type: Standard Product (one-time payment)
    ```
 
 3. **Pricing:**
    ```
    Currency: USD
-   Price: $9.99/month (or your preferred price)
-   Billing Interval: Monthly
-   Trial Period: 7 days (optional)
+   Price: $14.99 (one-time payment)
+   Billing Type: One-time
    ```
 
 4. **Save Product**
@@ -157,6 +156,8 @@ Paddle will review your account and may request:
    - Example: `pro_01234567890abcdef`
 
 **Checkpoint:** ✅ Product created with ID: `pro_____________`
+
+**Note:** This is a one-time purchase for lifetime access, NOT a subscription.
 
 ### Step 5: Configure Checkout Settings (5 min)
 
@@ -391,22 +392,21 @@ async function handlePaddleWebhook(request, env) {
 
     console.log('Paddle webhook received:', event.event_type);
 
-    // Handle different event types
+    // Handle different event types (for one-time purchases)
     switch (event.event_type) {
-      case 'subscription.created':
-        await handleSubscriptionCreated(event.data, env);
-        break;
-
-      case 'subscription.updated':
-        await handleSubscriptionUpdated(event.data, env);
-        break;
-
-      case 'subscription.cancelled':
-        await handleSubscriptionCancelled(event.data, env);
-        break;
-
       case 'transaction.completed':
+        // One-time purchase completed - generate license key
         await handleTransactionCompleted(event.data, env);
+        break;
+
+      case 'transaction.refunded':
+        // Purchase refunded - revoke license
+        await handleTransactionRefunded(event.data, env);
+        break;
+
+      case 'transaction.payment_failed':
+        // Payment failed - log for monitoring
+        await handlePaymentFailed(event.data, env);
         break;
     }
 
@@ -609,13 +609,14 @@ Create a landing page or pricing page with Paddle checkout:
 1. **Paddle Dashboard:**
    - Go to: Developer Tools → Webhooks
    - Add endpoint: `https://api.blurtkit.online/webhook`
-   - Select events:
-     - ✅ subscription.created
-     - ✅ subscription.updated
-     - ✅ subscription.cancelled
-     - ✅ transaction.completed
+   - Select events (for one-time purchases):
+     - ✅ transaction.completed (generates license key)
+     - ✅ transaction.refunded (revokes license)
+     - ✅ transaction.payment_failed (logs failed payments)
 
 2. **Copy webhook secret** and add to Cloudflare Worker environment
+
+**Note:** We're using transaction events, not subscription events, since this is a one-time lifetime purchase.
 
 **Checkpoint:** ✅ Production environment active
 
