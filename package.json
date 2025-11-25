@@ -1,7 +1,7 @@
 {
   "name": "element-blur-license-api",
   "version": "1.0.0",
-  "description": "License validation API for Element Blur Chrome Extension with LemonSqueezy integration",
+  "description": "License validation API for Element Blur Chrome Extension with Paddle integration",
   "main": "server-nodejs.js",
   "scripts": {
     "start": "node server-nodejs.js",
@@ -10,7 +10,7 @@
   },
   "keywords": [
     "license",
-    "lemonsqueezy",
+    "paddle",
     "chrome-extension",
     "api"
   ],

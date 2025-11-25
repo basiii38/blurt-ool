@@ -52,7 +52,7 @@ You may NOT:
 
 ### 4.1 One-Time Payment
 - Premium access requires a one-time payment of $14.99 USD (or current price)
-- Payment is processed through LemonSqueezy, our authorized payment processor
+- Payment is processed through Paddle, our authorized payment processor
 - All prices are in USD unless otherwise stated
 
 ### 4.2 Lifetime Access
@@ -61,8 +61,8 @@ You may NOT:
 - We reserve the right to discontinue the Extension with 90 days notice
 
 ### 4.3 Payment Processing
-- Payments are processed by LemonSqueezy (lemonsqueezy.com)
-- You agree to LemonSqueezy's Terms of Service and Privacy Policy
+- Payments are processed by Paddle (paddle.com)
+- You agree to Paddle's Terms of Service and Privacy Policy
 - We do not store credit card information
 
 ## 5. Refund Policy
@@ -228,8 +228,8 @@ We may suspend or terminate your access if:
 - We are not responsible for unauthorized use of your key
 
 ### 14.2 Lost Keys
-- Lost keys can be recovered via LemonSqueezy order lookup
-- Email support@your-domain.com for key recovery assistance
+- Lost keys can be recovered by contacting support
+- Email support@blurtkit.online for key recovery assistance
 - We may require proof of purchase
 
 ### 14.3 Fraudulent Activity
@@ -246,10 +246,10 @@ We may suspend or terminate your access if:
 
 ## 16. Third-Party Services
 
-### 16.1 LemonSqueezy
-- Payment processing by LemonSqueezy
-- Subject to LemonSqueezy's Terms and Privacy Policy
-- We are not responsible for LemonSqueezy's services
+### 16.1 Paddle
+- Payment processing by Paddle (Merchant of Record)
+- Subject to Paddle's Terms and Privacy Policy
+- We are not responsible for Paddle's services
 
 ### 16.2 Chrome Web Store
 - Extension distributed via Chrome Web Store
@@ -296,9 +296,9 @@ We are not liable for failure to perform due to circumstances beyond our reasona
 
 For questions about these Terms, contact us at:
 
-**Email:** support@your-domain.com
-**Website:** https://your-domain.com
-**License Support:** https://app.lemonsqueezy.com/my-orders
+**Email:** support@blurtkit.online
+**Website:** https://blurtkit.online
+**License Support:** support@blurtkit.online
 
 ## 20. Acknowledgment
 

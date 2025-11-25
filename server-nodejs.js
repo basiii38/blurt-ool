@@ -1,5 +1,9 @@
-// Node.js/Express server for Element Blur License Validation
+// Node.js/Express server for Element Blur License Validation (Paddle)
 // Alternative to Cloudflare Worker if you have your own server
+//
+// ⚠️  RECOMMENDED: Use cloudflare-worker.js instead (see PADDLE_SETUP.md)
+// This Node.js server requires manual updates for full Paddle integration
+//
 // Run with: node server-nodejs.js
 
 const express = require('express');
@@ -38,24 +42,27 @@ app.post('/api/validate-license', async (req, res) => {
       version
     });
 
-    // Validate with LemonSqueezy API
+    // TODO: Implement Paddle API validation
+    // For full Paddle integration, see cloudflare-worker.js
+    // This requires:
+    // 1. Get subscription ID from license key (KV storage or database)
+    // 2. Call Paddle API: GET /subscriptions/{id}
+    // 3. Check subscription status (active, trialing, etc.)
+    //
+    // Temporary placeholder:
     const lsResponse = await fetch(
-      'https://api.lemonsqueezy.com/v1/licenses/validate',
+      'https://api.paddle.com/subscriptions/{subscription_id}',
       {
-        method: 'POST',
+        method: 'GET',
         headers: {
-          'Accept': 'application/json',
+          'Authorization': `Bearer ${process.env.PADDLE_API_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          license_key: license_key,
-          instance_name: email || 'chrome-extension',
-        }),
       }
     );
 
     if (!lsResponse.ok) {
-      throw new Error(`LemonSqueezy API error: ${lsResponse.status}`);
+      throw new Error(`Paddle API error: ${lsResponse.status}`);
     }
 
     const data = await lsResponse.json();
@@ -107,15 +114,15 @@ app.post('/api/validate-license', async (req, res) => {
   }
 });
 
-// Webhook endpoint for LemonSqueezy
-app.post('/webhooks/lemonsqueezy', async (req, res) => {
+// Webhook endpoint for Paddle
+app.post('/webhook', async (req, res) => {
   try {
     const event = req.body;
 
-    // TODO: Verify webhook signature
-    // See: https://docs.lemonsqueezy.com/help/webhooks#signing-requests
-    // const signature = req.headers['x-signature'];
-    // const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET;
+    // TODO: Verify Paddle webhook signature
+    // See: https://developer.paddle.com/webhooks/signature-verification
+    // const signature = req.headers['paddle-signature'];
+    // const secret = process.env.PADDLE_WEBHOOK_SECRET;
     // if (!verifySignature(signature, req.body, secret)) {
     //   return res.status(401).json({ error: 'Invalid signature' });
     // }
@@ -220,7 +227,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`✅ Element Blur License API running on port ${PORT}`);
   console.log(`📍 Validation endpoint: http://localhost:${PORT}/api/validate-license`);
-  console.log(`📍 Webhook endpoint: http://localhost:${PORT}/webhooks/lemonsqueezy`);
+  console.log(`📍 Webhook endpoint: http://localhost:${PORT}/webhook`);
 });
 
 // Graceful shutdown

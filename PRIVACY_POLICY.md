@@ -38,9 +38,9 @@ When you activate a premium license, we receive:
 - Activation timestamp
 
 **Payment Information:**
-- Processed entirely by LemonSqueezy (our payment processor)
+- Processed entirely by Paddle (our payment processor)
 - We never receive or store credit card information
-- We receive confirmation of purchase and license key generation from LemonSqueezy
+- We receive confirmation of purchase and license key generation from Paddle
 
 **Email Address (Optional):**
 - Only if you provide it during license activation
@@ -103,7 +103,7 @@ We store only:
 - Data encrypted at rest
 - Regular security audits
 - Access restricted to essential personnel only
-- No third-party access except LemonSqueezy (payment processor)
+- No third-party access except Paddle (payment processor)
 
 ### 3.3 Data Retention
 - License data retained for the lifetime of your license
@@ -113,7 +113,7 @@ We store only:
 
 ## 4. Third-Party Services
 
-### 4.1 LemonSqueezy (Payment Processor)
+### 4.1 Paddle (Payment Processor)
 **Purpose:** Process premium license purchases
 
 **Data Shared:**
@@ -121,9 +121,9 @@ We store only:
 - Payment information (credit card, PayPal, etc.)
 - Billing address
 
-**Privacy Policy:** https://www.lemonsqueezy.com/privacy
+**Privacy Policy:** https://www.paddle.com/legal/privacy
 
-**Note:** LemonSqueezy is our payment processor. We receive only:
+**Note:** Paddle is our payment processor and Merchant of Record. We receive only:
 - Confirmation of successful purchase
 - License key generated for you
 - Your email address (to send the license key)

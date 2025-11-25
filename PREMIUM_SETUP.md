@@ -1,5 +1,15 @@
 # Premium License System Setup Guide
 
+> **⚠️ DEPRECATED:** This guide references LemonSqueezy which has been replaced by Paddle.
+>
+> **For Paddle setup, see:**
+> - **PADDLE_SETUP.md** - Complete technical guide
+> - **PADDLE_BEGINNER_GUIDE.md** - Beginner-friendly guide
+>
+> This file is kept for reference only.
+
+---
+
 ## Overview
 
 Element Blur now includes a complete **lifetime license system** with:
@@ -7,7 +17,7 @@ Element Blur now includes a complete **lifetime license system** with:
 - ✅ Online + offline activation support
 - ✅ 20 free trial uses for testing
 - ✅ Beautiful premium unlock UI
-- ✅ LemonSqueezy integration ready
+- ✅ Paddle integration ready
 - ✅ Secure local storage
 - ✅ Auto-revalidation every 30 days
 
@@ -41,48 +51,47 @@ Use this key to test activation without a backend!
 
 ## Production Setup (2 Options)
 
-### Option 1: LemonSqueezy (Recommended)
+### Option 1: Paddle (Recommended - See PADDLE_SETUP.md)
 
-**Why LemonSqueezy?**
-- ✅ Built-in license key management
-- ✅ Automatic key generation
-- ✅ Lower fees (5% + payment processing)
-- ✅ Professional API
+**Why Paddle?**
+- ✅ Merchant of Record (handles all taxes)
+- ✅ Automatic subscription management
+- ✅ Professional API and webhooks
+- ✅ Complete payment processing
 - ✅ Webhook support
 - ✅ Better for scaling
 
 **Setup Steps:**
 
-1. **Create LemonSqueezy account**: https://lemonsqueezy.com
+See **PADDLE_SETUP.md** for complete step-by-step instructions.
+
+Quick overview:
+
+1. **Create Paddle account**: https://paddle.com
 
 2. **Create Product:**
-   - Product name: "Element Blur Premium"
-   - Price: $14.99
-   - Enable "License Keys"
+   - Product name: "Blurt-ool Premium"
+   - Price: $9.99/month
+   - Subscription or one-time payment
 
 3. **API Integration:**
-   - Get API key from Settings → API
-   - LemonSqueezy handles key generation
-   - Deploy validation API (see `LEMON_SQUEEZY_SETUP.md`)
+   - Get API key from Developer Tools
+   - Deploy Cloudflare Worker (see `cloudflare-worker.js`)
+   - Configure webhooks
 
 4. **Webhook Setup:**
-   - Webhook URL: Your backend endpoint
-   - Event: `order_created`
-   - Validates purchases automatically
+   - Webhook URL: Your Cloudflare Worker endpoint
+   - Events: subscription.created, updated, cancelled, etc.
 
 5. **Update Extension:**
-   - Replace checkout link in `premium-ui.js`:
-     ```javascript
-     // Line 107
-     <a href="https://yourstore.lemonsqueezy.com/checkout/buy/PRODUCT_ID" target="_blank"...>
-     ```
-   - Update API endpoint in `license.js`:
+   - Update checkout link in `premium-ui.js` to point to your website
+   - API endpoint already configured in `license.js`
      ```javascript
      // Line 7
      API_URL: 'https://your-api.workers.dev'
      ```
 
-**See `LEMON_SQUEEZY_SETUP.md` for complete guide with Cloudflare Worker deployment.**
+**See `PADDLE_SETUP.md` for complete guide with Cloudflare Worker deployment.**
 
 ---
 
@@ -443,8 +452,8 @@ Not foolproof, but **good enough** for a Chrome extension. Perfect security isn'
 
 ## Next Steps
 
-1. **Set up LemonSqueezy:**
-   - Follow `LEMON_SQUEEZY_SETUP.md` guide
+1. **Set up Paddle:**
+   - Follow `PADDLE_SETUP.md` guide
    - Deploy Cloudflare Worker (FREE)
    - Configure product with license keys
    - Custom backend only if you have specific needs
@@ -472,8 +481,8 @@ Not foolproof, but **good enough** for a Chrome extension. Perfect security isn'
 
 ### Resources:
 
-- **LemonSqueezy Docs**: https://docs.lemonsqueezy.com
-- **LemonSqueezy Setup Guide**: See `LEMON_SQUEEZY_SETUP.md` in this repository
+- **Paddle Docs**: https://developer.paddle.com
+- **Paddle Setup Guide**: See `PADDLE_SETUP.md` and `PADDLE_BEGINNER_GUIDE.md` in this repository
 - **Cloudflare Workers**: https://developers.cloudflare.com/workers/
 - **Chrome Extension Payments**: https://developer.chrome.com/docs/webstore/payments/
 

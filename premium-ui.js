@@ -112,7 +112,7 @@ function renderActivationView(licenseInfo) {
     </div>
 
     <div class="blur-action-buttons">
-      <a href="https://yourstore.lemonsqueezy.com/checkout/buy/PRODUCT_ID" target="_blank" class="blur-btn blur-btn-buy">
+      <a href="https://blurtkit.online" target="_blank" class="blur-btn blur-btn-buy">
         <i class="bi bi-cart-fill"></i>
         <span>Buy Premium License</span>
       </a>
@@ -232,7 +232,7 @@ function renderActivatedView(licenseInfo) {
     </div>
 
     <div class="blur-help-links">
-      <a href="https://yourstore.lemonsqueezy.com/checkout/buy/PRODUCT_ID" target="_blank">Get license for another device</a>
+      <a href="https://blurtkit.online" target="_blank">Get license for another device</a>
       <span>•</span>
       <a href="#" id="blur-contact-support">Contact support</a>
     </div>
@@ -291,7 +291,7 @@ function setupPremiumModalListeners(licenseInfo) {
   if (lostKeyLink) {
     lostKeyLink.addEventListener('click', (e) => {
       e.preventDefault();
-      window.open('https://app.lemonsqueezy.com/my-orders', '_blank');
+      window.open('mailto:support@blurtkit.online?subject=Lost License Key', '_blank');
     });
   }
 
@@ -300,7 +300,7 @@ function setupPremiumModalListeners(licenseInfo) {
   supportLinks.forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
-      window.open('mailto:support@your-domain.com?subject=Element Blur Support', '_blank');
+      window.open('mailto:support@blurtkit.online?subject=Element Blur Support', '_blank');
     });
   });
 }

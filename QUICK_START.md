@@ -33,31 +33,30 @@ Edit `license.js` line 7:
 API_URL: 'https://element-blur-license-api.YOUR_SUBDOMAIN.workers.dev',
 ```
 
-### Step 4: Create LemonSqueezy Product (3 min)
+### Step 4: Create Paddle Product (3 min)
 
-1. Go to https://lemonsqueezy.com
-2. Create account and store
+1. Go to https://paddle.com
+2. Create account (see PADDLE_BEGINNER_GUIDE.md for detailed steps)
 3. Create new product:
-   - Name: "Element Blur Premium"
-   - Price: $14.99
-   - Enable "License Keys"
-4. Copy checkout URL
+   - Name: "Blurt-ool Premium"
+   - Price: $9.99/month (or one-time payment)
+4. Copy product ID
 
 ### Step 5: Update Extension URLs (1 min)
 
-Edit `premium-ui.js` line 83:
+Edit `premium-ui.js` to point to your website:
 
 ```javascript
-href="https://yourstore.lemonsqueezy.com/checkout/buy/PRODUCT_ID"
+href="https://blurtkit.online"
 ```
 
 ### Step 6: Test! (3 min)
 
 1. Load extension in Chrome
 2. Click star button
-3. Make test purchase (Test Mode in LemonSqueezy)
+3. Make test purchase (Sandbox Mode in Paddle)
 4. Use test card: `4242 4242 4242 4242`
-5. Get license key from email
+5. Get license key from webhook (see PADDLE_SETUP.md)
 6. Activate in extension
 
 **Done! You're live! 🚀**
@@ -81,7 +80,7 @@ Copy `.env.example` to `.env`:
 cp .env.example .env
 ```
 
-Edit `.env` and add your LemonSqueezy API key.
+Edit `.env` and add your Paddle API key (see PADDLE_SETUP.md).
 
 ### Step 3: Start Server (1 min)
 
@@ -96,7 +95,8 @@ Server runs on `http://localhost:3000`
 **Heroku:**
 ```bash
 heroku create element-blur-api
-heroku config:set LEMONSQUEEZY_API_KEY=your_key
+heroku config:set PADDLE_API_KEY=your_key
+heroku config:set PADDLE_WEBHOOK_SECRET=your_secret
 git push heroku main
 ```
 
@@ -126,8 +126,8 @@ Before going live:
 
 - [ ] Worker/server is deployed
 - [ ] Extension updated with correct API URL
-- [ ] LemonSqueezy product created with license keys
-- [ ] Test purchase works (Test Mode)
+- [ ] Paddle product created (see PADDLE_SETUP.md)
+- [ ] Test purchase works (Sandbox Mode)
 - [ ] License activation works
 - [ ] Premium features unlock
 - [ ] Premium button shows green
@@ -155,7 +155,7 @@ wrangler tail
 ### "License shows invalid"
 
 **Check:**
-1. Test Mode is ON in LemonSqueezy (for testing)
+1. Sandbox Mode is ON in Paddle (for testing)
 2. License key is copied correctly
 3. Check Network tab for API response
 
@@ -165,7 +165,7 @@ wrangler tail
 
 Before launching:
 
-- [ ] Turn OFF Test Mode in LemonSqueezy
+- [ ] Turn OFF Sandbox Mode in Paddle
 - [ ] Remove `generateLicenseKey()` from license.js (line 408)
 - [ ] Update support email in premium-ui.js
 - [ ] Set up webhook (optional but recommended)
@@ -180,7 +180,7 @@ Before launching:
 **Recommended strategy:**
 
 1. **Early Bird** (first 100): $9.99
-   - Create discount code in LemonSqueezy: `EARLYBIRD`
+   - Create discount code in Paddle: `EARLYBIRD`
    - 33% off
    - Limit to 100 uses
 
@@ -217,7 +217,7 @@ Questions? Reply to this email.
 ```
 
 **Set up auto-reply:**
-Use LemonSqueezy webhook to trigger email (see LEMON_SQUEEZY_SETUP.md)
+Use Paddle webhook to trigger email (see PADDLE_SETUP.md)
 
 ---
 
@@ -225,10 +225,10 @@ Use LemonSqueezy webhook to trigger email (see LEMON_SQUEEZY_SETUP.md)
 
 **Check these regularly:**
 
-1. **LemonSqueezy Dashboard:**
+1. **Paddle Dashboard:**
    - Sales
    - Refunds
-   - Active licenses
+   - Active subscriptions
 
 2. **Cloudflare Dashboard:**
    - API requests
@@ -245,7 +245,7 @@ Use LemonSqueezy webhook to trigger email (see LEMON_SQUEEZY_SETUP.md)
 ## Next Steps
 
 1. ✅ Deploy API (Cloudflare or Node.js)
-2. ✅ Create LemonSqueezy product
+2. ✅ Create Paddle product
 3. ✅ Update extension URLs
 4. ✅ Test everything
 5. ✅ Launch! 🚀
@@ -256,8 +256,8 @@ Use LemonSqueezy webhook to trigger email (see LEMON_SQUEEZY_SETUP.md)
 
 ## Questions?
 
-- LemonSqueezy docs: https://docs.lemonsqueezy.com
+- Paddle docs: https://developer.paddle.com
 - Cloudflare Workers: https://developers.cloudflare.com/workers
-- Extension setup: See `LEMON_SQUEEZY_SETUP.md`
+- Extension setup: See `PADDLE_SETUP.md` and `PADDLE_BEGINNER_GUIDE.md`
 
 **Good luck! 🎉**
